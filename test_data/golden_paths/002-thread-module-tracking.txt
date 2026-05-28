@@ -1,0 +1,17 @@
+# Golden Path: 002-thread-module-tracking
+# Expected event sequence for a successful debug session with thread and module tracking.
+# Format: [timestamp] Event { fields }
+
+[0ms] ProcessLaunched { pid: <PID> }
+[0ms] ThreadCreated { id: <MAIN_TID> }
+[0ms] ModuleLoaded { name: "hello_debuggee.exe", base: <EXE_BASE> }
+[0ms] ModuleLoaded { name: "ntdll.dll", base: <NTDLL_BASE> }
+[0ms] BreakpointHit { kind: SystemInitial, address: <NTDLL_INIT>, thread_id: <MAIN_TID> }
+[0ms] Continue
+[10ms] ThreadCreated { id: <WORKER_TID> }
+[10ms] ModuleLoaded { name: "kernel32.dll", base: <KERNEL32_BASE> }
+[15ms] BreakpointHit { kind: UserDefined(1), address: <BP_ADDR>, thread_id: <MAIN_TID> }
+[15ms] Output { message: "Thread <MAIN_TID> Running *" }
+[15ms] Output { message: "Thread <WORKER_TID> Running" }
+[20ms] ThreadExited { id: <WORKER_TID>, code: 0 }
+[500ms] ProcessExited { code: 0 }

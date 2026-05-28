@@ -38,6 +38,9 @@ pub enum EngineCommand {
     },
     ListThreads,
     ListModules,
+    SelectThread {
+        id: ThreadId,
+    },
     Quit,
 }
 
@@ -91,6 +94,7 @@ pub enum EngineEvent {
     },
     ThreadCreated {
         id: ThreadId,
+        handle: usize,
     },
     ThreadExited {
         id: ThreadId,
@@ -98,6 +102,9 @@ pub enum EngineEvent {
     },
     ModuleLoaded {
         name: String,
+        base: u64,
+    },
+    ModuleUnloaded {
         base: u64,
     },
     Exception {

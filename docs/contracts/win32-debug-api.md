@@ -97,6 +97,83 @@ match unsafe { WaitForDebugEventEx(&mut event, 100) } {
 
 ---
 
+## Contract: `OpenThread`
+
+### Pre-conditions
+- Valid `ThreadId` exists in the target process.
+- Desired access mask is valid (e.g., `THREAD_ALL_ACCESS` for debugging).
+
+### Post-conditions (Ok)
+- Returns a valid handle with the requested access rights.
+
+### Post-conditions (Err)
+- `ERROR_INVALID_PARAMETER`: TID does not exist or caller lacks privilege.
+
+### Invariant
+- The returned handle **MUST** be closed with `CloseHandle` to prevent handle leaks.
+- RDE caches handles from `CREATE_THREAD_DEBUG_EVENT` and closes them on `EXIT_THREAD_DEBUG_EVENT`.
+
+---
+
+## Contract: `GetMappedFileNameW`
+
+### Pre-conditions
+- Process handle has `PROCESS_QUERY_INFORMATION`.
+- `lpv` points to a valid mapped address in the target process.
+
+### Post-conditions (Ok)
+- Buffer contains the NT device path of the mapped file.
+- Return value is the length in characters, excluding null terminator.
+
+### Post-conditions (Err)
+- Returns 0 on error (e.g., address not mapped).
+- `GetLastError` may be set.
+
+### Invariant
+- The returned path is an NT path (`\Device\HarddiskVolume...`), NOT a DOS path.
+- For display to users, translate to a DOS path via `QueryDosDevice`.
+
+---
+
+## Contract: `EnumProcessModules`
+
+### Pre-conditions
+- Process handle has `PROCESS_QUERY_INFORMATION | PROCESS_VM_READ`.
+
+### Post-conditions (Ok)
+- `lphModule` array populated with `HMODULE` handles.
+- `lpcbNeeded` contains total bytes required.
+
+### Post-conditions (Err)
+- `ERROR_PARTIAL_COPY`: Cross-bitness process access.
+
+### Invariant
+- Snapshot API: modules loaded/unloaded after the call are not reflected.
+- Use as fallback only; primary tracking is event-driven via `LOAD_DLL_DEBUG_EVENT`.
+
+---
+
+## Contract: `SymLoadModuleExW`
+
+### Pre-conditions
+- `SymInitializeW` called for the process handle.
+- `BaseOfDll` is the load address from `LOAD_DLL_DEBUG_EVENT`.
+
+### Post-conditions (Ok)
+- Module registered with DbgHelp; symbol resolution works for addresses in the module.
+- Returns non-zero module base.
+
+### Post-conditions (Err)
+- Returns 0 on failure. `GetLastError` may be `ERROR_NOT_SUPPORTED` if no PDB found.
+- Existing symbol table is NOT corrupted.
+
+### Invariant
+- Must be called for every module loaded AFTER `SymInitializeW`.
+- Calling for an already-loaded module is a no-op.
+- Must be paired with `SymUnloadModule64` on module unload.
+
+---
+
 ## Quick Reference: Error Codes
 
 | Code | Name | Meaning | Action |

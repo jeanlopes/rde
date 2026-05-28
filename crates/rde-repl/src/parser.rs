@@ -74,8 +74,17 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
             Ok(EngineCommand::WriteMemory { address, bytes })
         }
         "bt" | "backtrace" => Ok(EngineCommand::Backtrace { thread_id: None }),
-        "threads" | "info" if parts.get(1) == Some(&"threads") => Ok(EngineCommand::ListThreads),
-        "modules" | "info" if parts.get(1) == Some(&"modules") => Ok(EngineCommand::ListModules),
+        "threads" => Ok(EngineCommand::ListThreads),
+        "info" if parts.get(1) == Some(&"threads") => Ok(EngineCommand::ListThreads),
+        "modules" => Ok(EngineCommand::ListModules),
+        "info" if parts.get(1) == Some(&"modules") => Ok(EngineCommand::ListModules),
+        "thread" => {
+            if parts.len() < 2 {
+                return Err("usage: thread <id>".into());
+            }
+            let id = parts[1].parse().map_err(|_| "invalid thread id")?;
+            Ok(EngineCommand::SelectThread { id })
+        }
         "quit" | "q" | "exit" => Ok(EngineCommand::Quit),
         _ => Err(format!("comando desconhecido: {}", parts[0])),
     }
@@ -84,4 +93,24 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
 fn parse_hex(s: &str) -> Result<u64, String> {
     let s = s.strip_prefix("0x").unwrap_or(s);
     u64::from_str_radix(s, 16).map_err(|_| format!("invalid hex address: {s}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_threads() {
+        assert!(matches!(parse("threads").unwrap(), EngineCommand::ListThreads));
+    }
+
+    #[test]
+    fn test_parse_thread_id() {
+        assert!(matches!(parse("thread 1234").unwrap(), EngineCommand::SelectThread { id: 1234 }));
+    }
+
+    #[test]
+    fn test_parse_modules() {
+        assert!(matches!(parse("modules").unwrap(), EngineCommand::ListModules));
+    }
 }

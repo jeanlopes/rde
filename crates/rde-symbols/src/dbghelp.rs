@@ -4,6 +4,7 @@ use crate::SymbolEngine;
 use libloading::{Library, Symbol};
 use rde_core::{DebugError, StackFrame, SymbolInfo};
 use std::ffi::{c_void, CStr};
+use std::os::windows::ffi::OsStrExt;
 use tracing::{info, warn};
 
 // ---------------------------------------------------------------------------
@@ -94,6 +95,17 @@ type SymInitializeWFn = unsafe extern "system" fn(HANDLE, *const u16, BOOL) -> B
 type SymCleanupFn = unsafe extern "system" fn(HANDLE) -> BOOL;
 type SymFromAddrWFn = unsafe extern "system" fn(HANDLE, DWORD64, *mut DWORD64, *mut SYMBOL_INFO) -> BOOL;
 type SymGetLineFromAddrW64Fn = unsafe extern "system" fn(HANDLE, DWORD64, *mut DWORD, *mut IMAGEHLP_LINE64) -> BOOL;
+type SymLoadModuleExWFn = unsafe extern "system" fn(
+    HANDLE,
+    HANDLE,
+    *const u16,
+    *const u16,
+    DWORD64,
+    DWORD,
+    *mut c_void,
+    DWORD,
+) -> DWORD64;
+type SymUnloadModule64Fn = unsafe extern "system" fn(HANDLE, DWORD64) -> BOOL;
 type StackWalk64Fn = unsafe extern "system" fn(
     DWORD,
     HANDLE,
@@ -117,6 +129,8 @@ pub struct DbgHelpLoader {
     sym_cleanup: Symbol<'static, SymCleanupFn>,
     sym_from_addr_w: Symbol<'static, SymFromAddrWFn>,
     sym_get_line_from_addr_w64: Symbol<'static, SymGetLineFromAddrW64Fn>,
+    sym_load_module_ex_w: Symbol<'static, SymLoadModuleExWFn>,
+    sym_unload_module64: Symbol<'static, SymUnloadModule64Fn>,
     #[allow(dead_code)]
     stack_walk64: Symbol<'static, StackWalk64Fn>,
 }
@@ -152,6 +166,14 @@ impl DbgHelpLoader {
             lib.get(b"StackWalk64\0")
                 .map_err(|e| DebugError::Internal(format!("StackWalk64 not found: {e}")))?
         };
+        let sym_load_module_ex_w = unsafe {
+            lib.get(b"SymLoadModuleExW\0")
+                .map_err(|e| DebugError::Internal(format!("SymLoadModuleExW not found: {e}")))?
+        };
+        let sym_unload_module64 = unsafe {
+            lib.get(b"SymUnloadModule64\0")
+                .map_err(|e| DebugError::Internal(format!("SymUnloadModule64 not found: {e}")))?
+        };
 
         Ok(Self {
             _lib: unsafe { Library::new("DbgHelp.dll").unwrap() }, // placeholder, not used
@@ -159,6 +181,8 @@ impl DbgHelpLoader {
             sym_cleanup,
             sym_from_addr_w,
             sym_get_line_from_addr_w64,
+            sym_load_module_ex_w,
+            sym_unload_module64,
             stack_walk64,
         })
     }
@@ -290,8 +314,41 @@ impl crate::SymbolEngine for DbgHelpSymbolEngine {
 
     fn load_module(&mut self, base: u64, path: &str) -> Result<(), DebugError> {
         info!("Loading symbols for module at 0x{base:x}: {path}");
-        // DbgHelp auto-loads modules via SymInitialize + search path.
-        // For explicit reload, we could call SymLoadModuleEx here.
+        let wide_path: Vec<u16> = std::ffi::OsStr::new(path)
+            .encode_wide()
+            .chain(Some(0))
+            .collect();
+        let result = unsafe {
+            (self.loader.sym_load_module_ex_w)(
+                self.process_handle,
+                0, // hFile
+                wide_path.as_ptr(),
+                std::ptr::null(), // ModuleName (optional)
+                base,
+                0, // SizeOfDll (0 = auto-detect from PE headers)
+                std::ptr::null_mut(), // Data
+                0, // Flags
+            )
+        };
+        if result == 0 {
+            let code = unsafe { windows::Win32::Foundation::GetLastError().0 };
+            if code != 0 {
+                return Err(DebugError::Win32Error {
+                    code,
+                    message: format!("SymLoadModuleExW failed for {path}"),
+                });
+            }
+        }
+        info!("Symbols loaded for module at 0x{base:x}");
+        Ok(())
+    }
+
+    fn unload_module(&mut self, base: u64) -> Result<(), DebugError> {
+        info!("Unloading symbols for module at 0x{base:x}");
+        let result = unsafe {
+            (self.loader.sym_unload_module64)(self.process_handle, base)
+        };
+        self.check_bool(result, "SymUnloadModule64 failed")?;
         Ok(())
     }
 

@@ -35,6 +35,10 @@ pub async fn run(
                     }
                 }
                 EngineEvent::ProcessExited { code } => println!("[Processo encerrado] código: {code}"),
+                EngineEvent::ThreadCreated { id, .. } => println!("[Thread criada] TID {id}"),
+                EngineEvent::ThreadExited { id, code } => println!("[Thread encerrada] TID {id} (código: {code})"),
+                EngineEvent::ModuleLoaded { name, base } => println!("[Módulo carregado] {name} em 0x{base:x}"),
+                EngineEvent::ModuleUnloaded { base } => println!("[Módulo descarregado] 0x{base:x}"),
                 EngineEvent::Error { message } => println!("Erro: {message}"),
                 EngineEvent::Output { message } => println!("{message}"),
                 _ => {}

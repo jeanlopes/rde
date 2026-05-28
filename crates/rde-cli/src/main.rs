@@ -42,7 +42,22 @@ async fn main() {
     // If target provided on command line, auto-launch
     if let Some(target) = args.target {
         let path = std::path::PathBuf::from(&target);
-        let path = std::fs::canonicalize(&path).unwrap_or(path);
+        let path = if path.exists() {
+            std::fs::canonicalize(&path).unwrap_or(path)
+        } else {
+            // Try Cargo example path heuristic
+            let cargo_example = std::path::PathBuf::from(format!("target/debug/examples/{}.{}",
+                path.file_stem().and_then(|s| s.to_str()).unwrap_or(&target),
+                path.extension().and_then(|s| s.to_str()).unwrap_or("exe")
+            ));
+            if cargo_example.exists() {
+                std::fs::canonicalize(&cargo_example).unwrap_or(cargo_example)
+            } else {
+                eprintln!("Erro: executável não encontrado: {}", path.display());
+                eprintln!("Dica: compile com 'cargo build --example <nome>' e use o caminho completo.");
+                std::process::exit(1);
+            }
+        };
         let _ = command_tx.send(rde_core::EngineCommand::Launch {
             path,
             args: args.target_args,

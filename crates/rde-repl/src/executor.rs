@@ -29,6 +29,7 @@ pub fn execute(cmd: &EngineCommand) -> String {
         EngineCommand::Backtrace { .. } => "Generating backtrace...".into(),
         EngineCommand::ListThreads => "Listing threads...".into(),
         EngineCommand::ListModules => "Listing modules...".into(),
+        EngineCommand::SelectThread { id } => format!("Selecting thread {id}..."),
         EngineCommand::Quit => "Quitting...".into(),
     }
 }
