@@ -41,6 +41,16 @@ pub enum EngineCommand {
     SelectThread {
         id: ThreadId,
     },
+    Disassemble {
+        address: Option<u64>,
+        symbol: Option<String>,
+        thread_id: Option<ThreadId>,
+        count: Option<usize>,
+    },
+    SetDisassemblyConfig {
+        auto_show: Option<bool>,
+        count: Option<usize>,
+    },
     Quit,
 }
 

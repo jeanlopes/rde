@@ -352,6 +352,11 @@ impl crate::SymbolEngine for DbgHelpSymbolEngine {
         Ok(())
     }
 
+    fn resolve_by_name(&self, _name: &str) -> Result<Vec<u64>, DebugError> {
+        // TODO: Implement symbol lookup by name using SymFromName or SymEnumSymbols
+        Err(DebugError::Internal("resolve_by_name not yet implemented in DbgHelp".into()))
+    }
+
     fn cleanup(&mut self) -> Result<(), DebugError> {
         if self.process_handle != 0 {
             let result = unsafe { (self.loader.sym_cleanup)(self.process_handle) };

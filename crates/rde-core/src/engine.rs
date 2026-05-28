@@ -1,6 +1,7 @@
 //! Debug engine orchestrator.
 
 use crate::channel::engine_channels;
+use crate::disasm::{Disassembler, DisassemblyConfig};
 use crate::events::{BreakpointKind, DebugLoopCommand};
 use crate::{DebugBackend, DebugError, EngineCommand, EngineEvent, ProcessHandle, RawHandle, Thread, ThreadState, Module};
 use crate::breakpoint::BreakpointManager;
@@ -45,6 +46,7 @@ pub struct DebugEngine<B: DebugBackend> {
     debug_event_rx: mpsc::UnboundedReceiver<EngineEvent>,
     debug_loop_tx: Option<mpsc::UnboundedSender<DebugLoopCommand>>,
     stepping_over_breakpoint: Option<u64>,
+    disasm_config: DisassemblyConfig,
 }
 
 struct Session {
@@ -68,6 +70,7 @@ impl<B: DebugBackend> DebugEngine<B> {
             debug_event_rx,
             debug_loop_tx: None,
             stepping_over_breakpoint: None,
+            disasm_config: DisassemblyConfig::default(),
         };
         (engine, command_tx, event_rx)
     }
@@ -262,6 +265,29 @@ impl<B: DebugBackend> DebugEngine<B> {
                         message: "No active debug session".into(),
                     });
                 }
+            }
+            EngineCommand::Disassemble { address, symbol, thread_id, count } => {
+                info!(target: "rde::engine::command", ?address, ?symbol, ?thread_id, ?count, "Disassemble");
+                if let Err(e) = self.handle_disassemble(address, symbol, thread_id, count).await {
+                    let _ = self.event_tx.send(EngineEvent::Error {
+                        message: e.to_string(),
+                    });
+                }
+            }
+            EngineCommand::SetDisassemblyConfig { auto_show, count } => {
+                info!(target: "rde::engine::command", ?auto_show, ?count, "SetDisassemblyConfig");
+                if let Some(auto) = auto_show {
+                    self.disasm_config.auto_show = auto;
+                }
+                if let Some(c) = count {
+                    self.disasm_config.count = c;
+                }
+                let _ = self.event_tx.send(EngineEvent::Output {
+                    message: format!(
+                        "Disassembly config: count={}, auto_show={}",
+                        self.disasm_config.count, self.disasm_config.auto_show
+                    ),
+                });
             }
             EngineCommand::Quit => {}
         }
@@ -510,6 +536,62 @@ impl<B: DebugBackend> DebugEngine<B> {
     }
 
 
+
+    #[instrument(skip(self))]
+    async fn handle_disassemble(
+        &mut self,
+        address: Option<u64>,
+        symbol: Option<String>,
+        thread_id: Option<u32>,
+        count: Option<usize>,
+    ) -> Result<(), DebugError> {
+        let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
+        let count = count.unwrap_or(self.disasm_config.count).max(1).min(100);
+
+        let (addr, rip) = match (address, symbol) {
+            (Some(a), _) => (a, None),
+            (None, Some(sym)) => {
+                // TODO: Integrate with symbol engine when architectural refactor is done.
+                // For now, return a clear error.
+                return Err(DebugError::Internal(format!(
+                    "Symbol '{sym}' not found (symbol resolution not yet integrated)"
+                )));
+            }
+            (None, None) => {
+                let tid = thread_id
+                    .or(session.selected_thread)
+                    .or_else(|| session.threads.keys().copied().next())
+                    .ok_or(DebugError::Internal("No threads available".into()))?;
+                let ctx = self.backend.get_registers(&session.handle, tid).await?;
+                let rip = ctx.rip;
+                let back_count = count / 2;
+                let back_bytes = (back_count * 8) as u64;
+                let start = rip.saturating_sub(back_bytes);
+                (start, Some(rip))
+            }
+        };
+
+        let buffer_size = (64_usize.saturating_mul(count)).min(4096);
+        let bytes = self.backend.read_memory(&session.handle, addr, buffer_size).await?;
+
+        let active_bps = self.breakpoints.list_active();
+        let bp_bytes = self.breakpoints.active_original_bytes();
+
+        let mut disasm = Disassembler::new()?;
+        let view = disasm.disassemble_at(addr, count, rip, &bytes, &active_bps, &bp_bytes);
+
+        match view {
+            Ok(view) => {
+                let _ = self.event_tx.send(EngineEvent::Output {
+                    message: view.format(),
+                });
+            }
+            Err(e) => {
+                return Err(e);
+            }
+        }
+        Ok(())
+    }
 
     async fn set_breakpoint(&mut self, address: u64) -> Result<(), DebugError> {
         let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;

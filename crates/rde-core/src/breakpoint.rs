@@ -74,6 +74,24 @@ impl BreakpointManager {
         self.breakpoints.values().collect()
     }
 
+    /// List addresses of all active (enabled) breakpoints.
+    pub fn list_active(&self) -> std::collections::HashSet<u64> {
+        self.breakpoints
+            .values()
+            .filter(|bp| bp.state == BreakpointState::Enabled)
+            .map(|bp| bp.address)
+            .collect()
+    }
+
+    /// Get a map of active breakpoint addresses to their original bytes.
+    pub fn active_original_bytes(&self) -> std::collections::HashMap<u64, u8> {
+        self.breakpoints
+            .values()
+            .filter(|bp| bp.state == BreakpointState::Enabled)
+            .map(|bp| (bp.address, bp.original_byte))
+            .collect()
+    }
+
     /// Handle a breakpoint hit: increment counter and return the breakpoint.
     pub fn hit(&mut self, id: BreakpointId) -> Result<&Breakpoint, DebugError> {
         let bp = self

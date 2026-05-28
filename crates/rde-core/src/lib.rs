@@ -4,6 +4,7 @@ use std::path::PathBuf;
 
 pub mod breakpoint;
 pub mod channel;
+pub mod disasm;
 pub mod engine;
 pub mod events;
 

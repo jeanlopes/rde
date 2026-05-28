@@ -1,0 +1,29 @@
+# Golden Path: Feature 003 — Disassembly at RIP
+
+## Scenario
+Debuggee stops at a user-defined breakpoint. REPL receives BreakpointHit event and user executes `disassemble`.
+
+## Event Sequence
+1. EngineEvent::BreakpointHit { kind: UserDefined(0), address: 0x7ff612340020, thread_id: 1234 }
+2. EngineCommand::Disassemble { address: None, symbol: None, thread_id: None, count: None }
+3. Engine reads memory at RIP - 40 bytes
+4. Capstone decodes instructions
+5. EngineEvent::Output with formatted disassembly
+
+## Expected Output Format
+
+    0x00007ff612340010: 48 83 ec 28          sub    rsp, 0x28
+    0x00007ff612340014: 48 8b 05 00 00 00 00 mov    rax, qword ptr [rip]
+=>  0x00007ff61234001b: cc                   int3   ; was: call 0x7ff612340050
+b+  0x00007ff61234001c: 48 83 c4 28          add    rsp, 0x28
+    0x00007ff612340020: c3                   ret
+
+## Markers
+- `=>`  : Current instruction (RIP)
+- `b+`  : Breakpoint active at this address
+- `; was:` : Original instruction shadowed by INT3 breakpoint
+
+## Notes
+- Bytes displayed: max 8, truncated with `..` if instruction > 8 bytes
+- Count default: 10 instructions
+- Memory read limit: min(64 * count, 4096) bytes
