@@ -18,12 +18,14 @@
 //! Violation: infinite breakpoint→single-step→breakpoint loop.
 
 use rde_core::{DebugLoopCommand, EngineEvent, ProcessHandle};
+use crate::module::get_module_name;
 use tokio::sync::mpsc;
 use tracing::{info, warn};
 use windows::Win32::System::Diagnostics::Debug::{
     ContinueDebugEvent, WaitForDebugEventEx, DEBUG_EVENT,
     EXCEPTION_DEBUG_EVENT, EXIT_PROCESS_DEBUG_EVENT, CREATE_THREAD_DEBUG_EVENT,
-    EXIT_THREAD_DEBUG_EVENT, LOAD_DLL_DEBUG_EVENT, CREATE_PROCESS_DEBUG_EVENT,
+    EXIT_THREAD_DEBUG_EVENT, LOAD_DLL_DEBUG_EVENT, UNLOAD_DLL_DEBUG_EVENT,
+    CREATE_PROCESS_DEBUG_EVENT,
 };
 
 use windows::Win32::Foundation::NTSTATUS;
@@ -59,7 +61,7 @@ pub fn run_debug_loop(
                     "WaitForDebugEventEx returned Ok"
                 );
 
-                let needs_continue = dispatch_event(&event, &event_tx);
+                let needs_continue = dispatch_event(&event, &event_tx, _handle);
 
                 if event.dwDebugEventCode == EXIT_PROCESS_DEBUG_EVENT {
                     process_running = false;
@@ -139,6 +141,7 @@ pub fn run_debug_loop(
 fn dispatch_event(
     event: &DEBUG_EVENT,
     tx: &mpsc::UnboundedSender<EngineEvent>,
+    handle: &ProcessHandle,
 ) -> bool {
     match event.dwDebugEventCode {
         CREATE_PROCESS_DEBUG_EVENT => {
@@ -156,8 +159,12 @@ fn dispatch_event(
         }
         CREATE_THREAD_DEBUG_EVENT => {
             let tid = event.dwThreadId;
-            info!("Thread created: TID {}", tid);
-            let _ = tx.send(EngineEvent::ThreadCreated { id: tid });
+            let h_thread = unsafe { event.u.CreateThread.hThread };
+            info!("Thread created: TID {} hThread {:?}", tid, h_thread);
+            let _ = tx.send(EngineEvent::ThreadCreated {
+                id: tid,
+                handle: h_thread.0 as usize,
+            });
             true
         }
         EXIT_THREAD_DEBUG_EVENT => {
@@ -171,10 +178,21 @@ fn dispatch_event(
             true
         }
         LOAD_DLL_DEBUG_EVENT => {
+            let base = unsafe { event.u.LoadDll.lpBaseOfDll } as u64;
+            let h_process = windows::Win32::Foundation::HANDLE(handle.process_handle.0 as isize);
+            let name = get_module_name(h_process, base)
+                .unwrap_or_else(|| "unknown".to_string());
+            info!("DLL loaded: {} base 0x{:x}", name, base);
             let _ = tx.send(EngineEvent::ModuleLoaded {
-                name: "unknown".into(),
-                base: 0,
+                name,
+                base,
             });
+            true
+        }
+        UNLOAD_DLL_DEBUG_EVENT => {
+            let base = unsafe { event.u.UnloadDll.lpBaseOfDll } as u64;
+            info!("DLL unloaded: base 0x{:x}", base);
+            let _ = tx.send(EngineEvent::ModuleUnloaded { base });
             true
         }
         EXCEPTION_DEBUG_EVENT => {

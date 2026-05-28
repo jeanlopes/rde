@@ -21,6 +21,9 @@ pub trait SymbolEngine: Send + Sync {
     /// Load symbols for a newly loaded module.
     fn load_module(&mut self, base: u64, path: &str) -> Result<(), DebugError>;
 
+    /// Unload symbols for a module that has been unloaded.
+    fn unload_module(&mut self, base: u64) -> Result<(), DebugError>;
+
     /// Cleanup symbol resources.
     fn cleanup(&mut self) -> Result<(), DebugError>;
 }
@@ -42,6 +45,10 @@ impl SymbolEngine for StubSymbolEngine {
     }
 
     fn load_module(&mut self, _base: u64, _path: &str) -> Result<(), DebugError> {
+        Ok(())
+    }
+
+    fn unload_module(&mut self, _base: u64) -> Result<(), DebugError> {
         Ok(())
     }
 

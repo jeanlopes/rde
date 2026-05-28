@@ -20,9 +20,9 @@
 
 **Purpose**: Prepare test infrastructure and golden path artifacts for the feature.
 
-- [ ] T001 Create golden path directory and scaffold for `002-thread-module-tracking` in `test_data/golden_paths/002-thread-module-tracking.txt`
-- [ ] T002 [P] Add multi-threaded example program for integration tests in `examples/threaded_debuggee.rs`
-- [ ] T003 [P] Add DLL-loading example program for integration tests in `examples/dll_debuggee.rs`
+- [X] T001 Create golden path directory and scaffold for `002-thread-module-tracking` in `test_data/golden_paths/002-thread-module-tracking.txt`
+- [X] T002 [P] Add multi-threaded example program for integration tests in `examples/threaded_debuggee.rs`
+- [X] T003 [P] Add DLL-loading example program for integration tests in `examples/dll_debuggee.rs`
 
 ---
 
@@ -32,14 +32,14 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete.
 
-- [ ] T004 Add `SelectThread { id: ThreadId }` variant to `EngineCommand` in `crates/rde-core/src/events.rs`
-- [ ] T005 Add `ModuleUnloaded { base: u64 }` variant to `EngineEvent` in `crates/rde-core/src/events.rs`
-- [ ] T006 [P] Update `Session` struct to hold `threads: HashMap<ThreadId, Thread>`, `modules: HashMap<u64, Module>`, and `selected_thread: Option<ThreadId>` in `crates/rde-core/src/engine.rs`
-- [ ] T007 [P] Update `DebugBackend` trait to accept `thread_handle: Option<RawHandle>` for cached handle operations in `crates/rde-core/src/lib.rs`
-- [ ] T008 Extract and cache `hThread` from `CREATE_THREAD_DEBUG_EVENT` in `crates/rde-win32/src/debug_loop.rs`
-- [ ] T009 Extract `lpBaseOfDll` from `LOAD_DLL_DEBUG_EVENT` in `crates/rde-win32/src/debug_loop.rs`
-- [ ] T010 Add `UNLOAD_DLL_DEBUG_EVENT` handler to debug loop dispatch in `crates/rde-win32/src/debug_loop.rs`
-- [ ] T011 [P] Add `CloseHandle` safety wrapper and thread handle cache helper in `crates/rde-win32/src/thread.rs`
+- [X] T004 Add `SelectThread { id: ThreadId }` variant to `EngineCommand` in `crates/rde-core/src/events.rs`
+- [X] T005 Add `ModuleUnloaded { base: u64 }` variant to `EngineEvent` in `crates/rde-core/src/events.rs`
+- [X] T006 [P] Update `Session` struct to hold `threads: HashMap<ThreadId, Thread>`, `modules: HashMap<u64, Module>`, and `selected_thread: Option<ThreadId>` in `crates/rde-core/src/engine.rs`
+- [X] T007 [P] Update `DebugBackend` trait to accept `thread_handle: Option<RawHandle>` for cached handle operations in `crates/rde-core/src/lib.rs`
+- [X] T008 Extract and cache `hThread` from `CREATE_THREAD_DEBUG_EVENT` in `crates/rde-win32/src/debug_loop.rs`
+- [X] T009 Extract `lpBaseOfDll` from `LOAD_DLL_DEBUG_EVENT` in `crates/rde-win32/src/debug_loop.rs`
+- [X] T010 Add `UNLOAD_DLL_DEBUG_EVENT` handler to debug loop dispatch in `crates/rde-win32/src/debug_loop.rs`
+- [X] T011 [P] Add `CloseHandle` safety wrapper and thread handle cache helper in `crates/rde-win32/src/thread.rs`
 
 **Checkpoint**: Foundation ready — `Session` has registries, debug loop extracts handles and module bases, and new event/command variants exist. User story implementation can now begin.
 
@@ -53,15 +53,15 @@
 
 ### Implementation for User Story 1
 
-- [ ] T012 [P] [US1] Implement `ThreadCreated` event handler: insert thread into registry with cached handle in `crates/rde-core/src/engine.rs`
-- [ ] T013 [P] [US1] Implement `ThreadExited` event handler: mark thread as `Exited`, close cached handle, and reassign `selected_thread` to oldest remaining thread in `crates/rde-core/src/engine.rs`
-- [ ] T014 [US1] Implement `ListThreads` command handler: format registry as table with state and selected indicator in `crates/rde-core/src/engine.rs`
-- [ ] T015 [US1] Implement `SelectThread` command handler: validate thread exists and is not exited, update `selected_thread` in `crates/rde-core/src/engine.rs`
-- [ ] T016 [US1] Update `StepInto`, `ReadRegisters`, and `Backtrace` to use `session.selected_thread` instead of hardcoded `0` in `crates/rde-core/src/engine.rs`
-- [ ] T017 [P] [US1] Add `thread <id>` command parsing to REPL in `crates/rde-repl/src/parser.rs`
-- [ ] T018 [US1] Display `ThreadCreated` and `ThreadExited` events in REPL output loop in `crates/rde-repl/src/lib.rs`
-- [ ] T019 [P] [US1] Write integration test for thread listing and selection in `tests/integration_tests.rs`
-- [ ] T020 [US1] Capture and write golden path snapshot for thread lifecycle events in `test_data/golden_paths/002-thread-module-tracking.txt`
+- [X] T012 [P] [US1] Implement `ThreadCreated` event handler: insert thread into registry with cached handle in `crates/rde-core/src/engine.rs`
+- [X] T013 [P] [US1] Implement `ThreadExited` event handler: mark thread as `Exited`, close cached handle, and reassign `selected_thread` to oldest remaining thread in `crates/rde-core/src/engine.rs`
+- [X] T014 [US1] Implement `ListThreads` command handler: format registry as table with state and selected indicator in `crates/rde-core/src/engine.rs`
+- [X] T015 [US1] Implement `SelectThread` command handler: validate thread exists and is not exited, update `selected_thread` in `crates/rde-core/src/engine.rs`
+- [X] T016 [US1] Update `StepInto`, `ReadRegisters`, and `Backtrace` to use `session.selected_thread` instead of hardcoded `0` in `crates/rde-core/src/engine.rs`
+- [X] T017 [P] [US1] Add `thread <id>` command parsing to REPL in `crates/rde-repl/src/parser.rs`
+- [X] T018 [US1] Display `ThreadCreated` and `ThreadExited` events in REPL output loop in `crates/rde-repl/src/lib.rs`
+- [X] T019 [P] [US1] Write integration test for thread listing and selection in `tests/integration_tests.rs`
+- [X] T020 [US1] Capture and write golden path snapshot for thread lifecycle events in `test_data/golden_paths/002-thread-module-tracking.txt`
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. The MVP is complete.
 
@@ -75,15 +75,15 @@
 
 ### Implementation for User Story 2
 
-- [ ] T021 [P] [US2] Implement `ModuleLoaded` event handler: resolve module name via `GetMappedFileNameW`, insert into registry with base and size in `crates/rde-core/src/engine.rs`
-- [ ] T022 [P] [US2] Implement `ModuleUnloaded` event handler: remove module from registry by base address in `crates/rde-core/src/engine.rs`
-- [ ] T023 [US2] Implement `ListModules` command handler: format registry as table with name, base, size, and symbol status in `crates/rde-core/src/engine.rs`
-- [ ] T024 [US2] Implement `get_module_name` using `GetMappedFileNameW` and NT-to-DOS path translation in `crates/rde-win32/src/module.rs`
-- [ ] T025 [US2] Implement `enumerate_modules` fallback using `EnumProcessModules` + `K32GetModuleInformation` in `crates/rde-win32/src/module.rs`
-- [ ] T026 [US2] Update debug loop `LOAD_DLL_DEBUG_EVENT` dispatch to send real `base` and resolved `name` in `crates/rde-win32/src/debug_loop.rs`
-- [ ] T027 [US2] Update debug loop `UNLOAD_DLL_DEBUG_EVENT` dispatch to send `ModuleUnloaded` with `lpBaseOfDll` in `crates/rde-win32/src/debug_loop.rs`
-- [ ] T028 [US2] Display `ModuleLoaded` and `ModuleUnloaded` events in REPL output loop in `crates/rde-repl/src/lib.rs`
-- [ ] T029 [P] [US2] Write integration test for module load/unload tracking in `tests/integration_tests.rs`
+- [X] T021 [P] [US2] Implement `ModuleLoaded` event handler: resolve module name via `GetMappedFileNameW`, insert into registry with base and size in `crates/rde-core/src/engine.rs`
+- [X] T022 [P] [US2] Implement `ModuleUnloaded` event handler: remove module from registry by base address in `crates/rde-core/src/engine.rs`
+- [X] T023 [US2] Implement `ListModules` command handler: format registry as table with name, base, size, and symbol status in `crates/rde-core/src/engine.rs`
+- [X] T024 [US2] Implement `get_module_name` using `GetMappedFileNameW` and NT-to-DOS path translation in `crates/rde-win32/src/module.rs`
+- [X] T025 [US2] Implement `enumerate_modules` fallback using `EnumProcessModules` + `K32GetModuleInformation` in `crates/rde-win32/src/module.rs`
+- [X] T026 [US2] Update debug loop `LOAD_DLL_DEBUG_EVENT` dispatch to send real `base` and resolved `name` in `crates/rde-win32/src/debug_loop.rs`
+- [X] T027 [US2] Update debug loop `UNLOAD_DLL_DEBUG_EVENT` dispatch to send `ModuleUnloaded` with `lpBaseOfDll` in `crates/rde-win32/src/debug_loop.rs`
+- [X] T028 [US2] Display `ModuleLoaded` and `ModuleUnloaded` events in REPL output loop in `crates/rde-repl/src/lib.rs`
+- [X] T029 [P] [US2] Write integration test for module load/unload tracking in `tests/integration_tests.rs`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. Modules are tracked and listed.
 
@@ -97,13 +97,13 @@
 
 ### Implementation for User Story 3
 
-- [ ] T030 [US3] Add `SymLoadModuleEx` FFI declaration and loader symbol to `DbgHelpLoader` in `crates/rde-symbols/src/dbghelp.rs`
-- [ ] T031 [US3] Implement `DbgHelpSymbolEngine::load_module` to call `SymLoadModuleEx` with base, size, and path in `crates/rde-symbols/src/dbghelp.rs`
-- [ ] T032 [US3] Add `SymbolEngine::unload_module` trait method and implement via `SymUnloadModule64` in `crates/rde-symbols/src/dbghelp.rs`
-- [ ] T033 [US3] Integrate symbol engine `load_module` call into `ModuleLoaded` handler in `crates/rde-core/src/engine.rs`
-- [ ] T034 [US3] Integrate symbol engine `unload_module` call into `ModuleUnloaded` handler in `crates/rde-core/src/engine.rs`
-- [ ] T035 [US3] Update `Module` registry entries to set `symbols_loaded = true` on successful `SymLoadModuleEx` in `crates/rde-core/src/engine.rs`
-- [ ] T036 [P] [US3] Write integration test for symbol resolution after DLL load in `tests/integration_tests.rs`
+- [X] T030 [US3] Add `SymLoadModuleEx` FFI declaration and loader symbol to `DbgHelpLoader` in `crates/rde-symbols/src/dbghelp.rs`
+- [X] T031 [US3] Implement `DbgHelpSymbolEngine::load_module` to call `SymLoadModuleEx` with base, size, and path in `crates/rde-symbols/src/dbghelp.rs`
+- [X] T032 [US3] Add `SymbolEngine::unload_module` trait method and implement via `SymUnloadModule64` in `crates/rde-symbols/src/dbghelp.rs`
+- [X] T033 [US3] Integrate symbol engine `load_module` call into `ModuleLoaded` handler in `crates/rde-core/src/engine.rs`
+- [X] T034 [US3] Integrate symbol engine `unload_module` call into `ModuleUnloaded` handler in `crates/rde-core/src/engine.rs`
+- [X] T035 [US3] Update `Module` registry entries to set `symbols_loaded = true` on successful `SymLoadModuleEx` in `crates/rde-core/src/engine.rs`
+- [X] T036 [P] [US3] Write integration test for symbol resolution after DLL load in `tests/integration_tests.rs`
 
 **Checkpoint**: All user stories should now be independently functional. Symbol resolution works for dynamically loaded modules.
 
@@ -113,13 +113,13 @@
 
 **Purpose**: Edge cases, observability, contracts, and final validation.
 
-- [ ] T037 [P] Handle edge case: thread principal exits before process — ensure session stays active and fallback selection works in `crates/rde-core/src/engine.rs`
-- [ ] T038 [P] Handle edge case: select non-existent or exited thread — return clear error to REPL in `crates/rde-core/src/engine.rs`
-- [ ] T039 [P] Handle edge case: module loaded without symbols — display correctly in `ListModules` with `✗` symbol status in `crates/rde-core/src/engine.rs`
-- [ ] T040 [P] Add `tracing` instrumentation to all new event handlers and command handlers in `crates/rde-core/src/engine.rs`
-- [ ] T041 [P] Update `docs/contracts/win32-debug-api.md` with contracts for `OpenThread`, `GetMappedFileNameW`, `EnumProcessModules`, and `SymLoadModuleEx`
-- [ ] T042 [P] Run full workspace test suite (`cargo test --workspace`) and fix regressions
-- [ ] T043 [P] Validate quickstart.md commands against actual REPL output
+- [X] T037 [P] Handle edge case: thread principal exits before process — ensure session stays active and fallback selection works in `crates/rde-core/src/engine.rs`
+- [X] T038 [P] Handle edge case: select non-existent or exited thread — return clear error to REPL in `crates/rde-core/src/engine.rs`
+- [X] T039 [P] Handle edge case: module loaded without symbols — display correctly in `ListModules` with `✗` symbol status in `crates/rde-core/src/engine.rs`
+- [X] T040 [P] Add `tracing` instrumentation to all new event handlers and command handlers in `crates/rde-core/src/engine.rs`
+- [X] T041 [P] Update `docs/contracts/win32-debug-api.md` with contracts for `OpenThread`, `GetMappedFileNameW`, `EnumProcessModules`, and `SymLoadModuleEx`
+- [X] T042 [P] Run full workspace test suite (`cargo test --workspace`) and fix regressions
+- [X] T043 [P] Validate quickstart.md commands against actual REPL output
 
 ---
 

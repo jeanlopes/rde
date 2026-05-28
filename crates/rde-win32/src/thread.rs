@@ -1,12 +1,20 @@
 //! Thread context and suspension wrappers.
 
-use rde_core::{DebugError, ProcessHandle, RegisterContext, ThreadId};
+use rde_core::{DebugError, ProcessHandle, RawHandle, RegisterContext, ThreadId};
 use tracing::instrument;
 use windows::Win32::Foundation::{CloseHandle, HANDLE};
 use windows::Win32::System::Diagnostics::Debug::{
     GetThreadContext, SetThreadContext, CONTEXT, CONTEXT_ALL_AMD64,
 };
 use windows::Win32::System::Threading::{OpenThread, ResumeThread, SuspendThread, THREAD_ALL_ACCESS};
+
+/// Close a thread handle safely.
+pub fn close_thread_handle(handle: RawHandle) {
+    if handle.0 != 0 {
+        // SAFETY: Closing a valid handle obtained from OpenThread or CreateThread debug event.
+        let _ = unsafe { CloseHandle(HANDLE(handle.0 as isize)) };
+    }
+}
 
 /// Open a thread handle by ID.
 fn open_thread(thread_id: ThreadId) -> Result<HANDLE, DebugError> {

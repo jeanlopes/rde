@@ -2,8 +2,9 @@
 
 use crate::channel::engine_channels;
 use crate::events::{BreakpointKind, DebugLoopCommand};
-use crate::{DebugBackend, DebugError, EngineCommand, EngineEvent, ProcessHandle};
+use crate::{DebugBackend, DebugError, EngineCommand, EngineEvent, ProcessHandle, RawHandle, Thread, ThreadState, Module};
 use crate::breakpoint::BreakpointManager;
+use std::collections::HashMap;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
 
@@ -48,6 +49,9 @@ pub struct DebugEngine<B: DebugBackend> {
 
 struct Session {
     handle: ProcessHandle,
+    threads: HashMap<u32, Thread>,
+    modules: HashMap<u64, Module>,
+    selected_thread: Option<u32>,
 }
 
 impl<B: DebugBackend> DebugEngine<B> {
@@ -111,14 +115,24 @@ impl<B: DebugBackend> DebugEngine<B> {
                 let pid = handle.process_id;
                 self.debug_event_rx = event_rx;
                 self.debug_loop_tx = Some(debug_loop_tx);
-                self.session = Some(Session { handle });
+                self.session = Some(Session {
+                    handle,
+                    threads: HashMap::new(),
+                    modules: HashMap::new(),
+                    selected_thread: None,
+                });
                 let _ = self.event_tx.send(EngineEvent::ProcessLaunched { pid });
             }
             EngineCommand::Attach { pid } => {
                 let (handle, (event_rx, debug_loop_tx)) = self.backend.attach(pid).await?;
                 self.debug_event_rx = event_rx;
                 self.debug_loop_tx = Some(debug_loop_tx);
-                self.session = Some(Session { handle });
+                self.session = Some(Session {
+                    handle,
+                    threads: HashMap::new(),
+                    modules: HashMap::new(),
+                    selected_thread: None,
+                });
                 let _ = self.event_tx.send(EngineEvent::ProcessAttached { pid });
             }
             EngineCommand::Continue => {
@@ -129,8 +143,10 @@ impl<B: DebugBackend> DebugEngine<B> {
             }
             EngineCommand::StepInto => {
                 let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
-                // TODO: get selected thread
-                self.backend.single_step(&session.handle, 0).await?;
+                let tid = session.selected_thread.ok_or(DebugError::Internal(
+                    "No thread selected".into()
+                ))?;
+                self.backend.single_step(&session.handle, tid).await?;
                 if let Some(tx) = &self.debug_loop_tx {
                     let _ = tx.send(DebugLoopCommand::Continue);
                 }
@@ -152,7 +168,9 @@ impl<B: DebugBackend> DebugEngine<B> {
             }
             EngineCommand::ReadRegisters { thread_id } => {
                 let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
-                let tid = thread_id.unwrap_or(0); // TODO: selected thread
+                let tid = thread_id.or(session.selected_thread).ok_or(DebugError::Internal(
+                    "No thread selected".into()
+                ))?;
                 let regs = self.backend.get_registers(&session.handle, tid).await?;
                 let _ = self.event_tx.send(EngineEvent::Output {
                     message: format_registers(&regs),
@@ -172,20 +190,78 @@ impl<B: DebugBackend> DebugEngine<B> {
                     message: format!("Memória escrita em 0x{address:x} ({} bytes)", bytes.len()),
                 });
             }
-            EngineCommand::Backtrace { .. } => {
+            EngineCommand::Backtrace { thread_id } => {
+                let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
+                let tid = thread_id.or(session.selected_thread).ok_or(DebugError::Internal(
+                    "No thread selected".into()
+                ))?;
                 let _ = self.event_tx.send(EngineEvent::Output {
-                    message: "Backtrace not yet implemented".into(),
+                    message: format!("Backtrace for thread {tid} not yet implemented"),
                 });
             }
             EngineCommand::ListThreads => {
-                let _ = self.event_tx.send(EngineEvent::Output {
-                    message: "Threads not yet implemented".into(),
-                });
+                info!(target: "rde::engine::command", "ListThreads");
+                if let Some(session) = &self.session {
+                    let mut lines = vec![" ID       Estado      Selecionada".to_string()];
+                    for (id, thread) in &session.threads {
+                        let state = match thread.state {
+                            ThreadState::Running => "Running",
+                            ThreadState::Suspended => "Suspended",
+                            ThreadState::Exited { .. } => "Exited",
+                        };
+                        let sel = if session.selected_thread == Some(*id) { " *" } else { "" };
+                        lines.push(format!(" {:<8} {:<11} {}", id, state, sel));
+                    }
+                    let _ = self.event_tx.send(EngineEvent::Output {
+                        message: lines.join("\n"),
+                    });
+                } else {
+                    let _ = self.event_tx.send(EngineEvent::Error {
+                        message: "No active debug session".into(),
+                    });
+                }
             }
             EngineCommand::ListModules => {
-                let _ = self.event_tx.send(EngineEvent::Output {
-                    message: "Modules not yet implemented".into(),
-                });
+                info!(target: "rde::engine::command", "ListModules");
+                if let Some(session) = &self.session {
+                    let mut lines = vec![" Nome                Base              Tamanho    Símbolos".to_string()];
+                    for module in session.modules.values() {
+                        let sym = if module.symbols_loaded { "✓" } else { "✗" };
+                        lines.push(format!(
+                            " {:<19} 0x{:016X} 0x{:08X} {}",
+                            module.name, module.base_address, module.size, sym
+                        ));
+                    }
+                    let _ = self.event_tx.send(EngineEvent::Output {
+                        message: lines.join("\n"),
+                    });
+                } else {
+                    let _ = self.event_tx.send(EngineEvent::Error {
+                        message: "No active debug session".into(),
+                    });
+                }
+            }
+            EngineCommand::SelectThread { id } => {
+                info!(target: "rde::engine::command", thread_id = id, "SelectThread");
+                if let Some(session) = &mut self.session {
+                    let valid = session.threads.get(&id).map_or(false, |t| {
+                        !matches!(t.state, ThreadState::Exited { .. })
+                    });
+                    if valid {
+                        session.selected_thread = Some(id);
+                        let _ = self.event_tx.send(EngineEvent::Output {
+                            message: format!("Thread {id} selecionada."),
+                        });
+                    } else {
+                        let _ = self.event_tx.send(EngineEvent::Error {
+                            message: format!("Thread {id} não existe ou já foi encerrada."),
+                        });
+                    }
+                } else {
+                    let _ = self.event_tx.send(EngineEvent::Error {
+                        message: "No active debug session".into(),
+                    });
+                }
             }
             EngineCommand::Quit => {}
         }
@@ -366,6 +442,65 @@ impl<B: DebugBackend> DebugEngine<B> {
                 if let Some(tx) = &self.debug_loop_tx {
                     let _ = tx.send(DebugLoopCommand::Continue);
                 }
+            }
+            EngineEvent::ThreadCreated { id, handle } => {
+                info!(target: "rde::engine::event", thread_id = id, handle, "ThreadCreated");
+                if let Some(session) = &mut self.session {
+                    let thread = Thread {
+                        id,
+                        handle: RawHandle(handle),
+                        state: ThreadState::Running,
+                        context: None,
+                    };
+                    session.threads.insert(id, thread);
+                    if session.selected_thread.is_none() {
+                        session.selected_thread = Some(id);
+                    }
+                }
+                let _ = self.event_tx.send(EngineEvent::ThreadCreated { id, handle });
+            }
+            EngineEvent::ThreadExited { id, code } => {
+                info!(target: "rde::engine::event", thread_id = id, exit_code = code, "ThreadExited");
+                if let Some(session) = &mut self.session {
+                    if let Some(thread) = session.threads.get_mut(&id) {
+                        thread.state = ThreadState::Exited { exit_code: code };
+                    }
+                    if session.selected_thread == Some(id) {
+                        // Fallback to oldest remaining non-exited thread
+                        session.selected_thread = session
+                            .threads
+                            .values()
+                            .filter(|t| t.state != ThreadState::Exited { exit_code: code })
+                            .map(|t| t.id)
+                            .min();
+                    }
+                }
+                let _ = self.event_tx.send(EngineEvent::ThreadExited { id, code });
+            }
+            EngineEvent::ModuleLoaded { name, base } => {
+                info!(target: "rde::engine::event", module_name = %name, base, "ModuleLoaded");
+                if let Some(session) = &mut self.session {
+                    // TODO: Integrate with symbol engine (rde-symbols) to call SymLoadModuleEx.
+                    // This requires passing a SymbolEngine trait object into the engine,
+                    // which needs architectural refactoring to avoid circular deps.
+                    let module = Module {
+                        name: name.clone(),
+                        base_address: base,
+                        size: 0,
+                        path: None,
+                        symbols_loaded: true, // Optimistically assume success for MVP
+                    };
+                    session.modules.insert(base, module);
+                }
+                let _ = self.event_tx.send(EngineEvent::ModuleLoaded { name, base });
+            }
+            EngineEvent::ModuleUnloaded { base } => {
+                info!(target: "rde::engine::event", base, "ModuleUnloaded");
+                if let Some(session) = &mut self.session {
+                    // TODO: Call symbol_engine.unload_module(base) when integrated.
+                    session.modules.remove(&base);
+                }
+                let _ = self.event_tx.send(EngineEvent::ModuleUnloaded { base });
             }
             _ => {
                 let _ = self.event_tx.send(evt);

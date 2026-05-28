@@ -76,6 +76,13 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
         "bt" | "backtrace" => Ok(EngineCommand::Backtrace { thread_id: None }),
         "threads" | "info" if parts.get(1) == Some(&"threads") => Ok(EngineCommand::ListThreads),
         "modules" | "info" if parts.get(1) == Some(&"modules") => Ok(EngineCommand::ListModules),
+        "thread" => {
+            if parts.len() < 2 {
+                return Err("usage: thread <id>".into());
+            }
+            let id = parts[1].parse().map_err(|_| "invalid thread id")?;
+            Ok(EngineCommand::SelectThread { id })
+        }
         "quit" | "q" | "exit" => Ok(EngineCommand::Quit),
         _ => Err(format!("comando desconhecido: {}", parts[0])),
     }
