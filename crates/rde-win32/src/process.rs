@@ -11,11 +11,12 @@ use windows::Win32::System::Threading::{
     CreateProcessW, GetProcessId, STARTUPINFOW,
 };
 
+const DEBUG_PROCESS: u32 = 0x00000001;
 const DEBUG_ONLY_THIS_PROCESS: u32 = 0x00000002;
 
 /// Launch a process under the debugger.
 #[instrument]
-pub async fn launch(path: &Path, args: &[String]) -> Result<ProcessHandle, DebugError> {
+pub fn launch(path: &Path, args: &[String]) -> Result<ProcessHandle, DebugError> {
     let mut cmdline = build_command_line(path, args);
     let mut startup_info = STARTUPINFOW {
         cb: std::mem::size_of::<STARTUPINFOW>() as u32,
@@ -33,7 +34,7 @@ pub async fn launch(path: &Path, args: &[String]) -> Result<ProcessHandle, Debug
             None, // Process security attributes
             None, // Thread security attributes
             false, // Inherit handles
-            windows::Win32::System::Threading::PROCESS_CREATION_FLAGS(DEBUG_ONLY_THIS_PROCESS),
+            windows::Win32::System::Threading::PROCESS_CREATION_FLAGS(DEBUG_PROCESS | DEBUG_ONLY_THIS_PROCESS),
             None, // Environment
             None, // Current directory
             &mut startup_info,
@@ -62,7 +63,7 @@ pub async fn launch(path: &Path, args: &[String]) -> Result<ProcessHandle, Debug
 
 /// Attach to an existing process.
 #[instrument]
-pub async fn attach(pid: u32) -> Result<ProcessHandle, DebugError> {
+pub fn attach(pid: u32) -> Result<ProcessHandle, DebugError> {
     // SAFETY: DebugActiveProcess accepts any valid PID. We validate the result.
     // GitHub issue: TODO(rde#1)
     let result = unsafe { DebugActiveProcess(pid) };

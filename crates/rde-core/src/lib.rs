@@ -159,11 +159,22 @@ pub enum DebugError {
     Internal(String),
 }
 
+/// Channels produced by a successful launch/attach.
+pub type DebugChannels = (
+    tokio::sync::mpsc::UnboundedReceiver<EngineEvent>,
+    tokio::sync::mpsc::UnboundedSender<DebugLoopCommand>,
+);
+
 /// Trait abstracting the debugger backend (Win32, mock, future backends).
 #[async_trait::async_trait]
 pub trait DebugBackend: Send + Sync {
-    async fn launch(&self, path: &std::path::Path, args: &[String]) -> Result<ProcessHandle, DebugError>;
-    async fn attach(&self, pid: u32) -> Result<ProcessHandle, DebugError>;
+    /// Launch a new process under the debugger.
+    /// Returns the process handle and channels for communicating with the debug loop.
+    /// The debug loop runs in a dedicated thread that also creates the process,
+    /// because Windows requires `CreateProcessW` and `WaitForDebugEvent` to run
+    /// on the same thread.
+    async fn launch(&self, path: &std::path::Path, args: &[String]) -> Result<(ProcessHandle, DebugChannels), DebugError>;
+    async fn attach(&self, pid: u32) -> Result<(ProcessHandle, DebugChannels), DebugError>;
     async fn continue_execution(&self, handle: &ProcessHandle) -> Result<(), DebugError>;
     async fn single_step(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<(), DebugError>;
     async fn read_memory(&self, handle: &ProcessHandle, address: u64, size: usize) -> Result<Vec<u8>, DebugError>;
@@ -172,13 +183,4 @@ pub trait DebugBackend: Send + Sync {
     async fn set_registers(&self, handle: &ProcessHandle, thread_id: ThreadId, ctx: &RegisterContext) -> Result<(), DebugError>;
     async fn suspend_thread(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<(), DebugError>;
     async fn resume_thread(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<(), DebugError>;
-
-    /// Called when a session starts. Backend may spawn helper threads (e.g., debug loop).
-    fn on_session_started(
-        &self,
-        _handle: &ProcessHandle,
-        _event_tx: tokio::sync::mpsc::UnboundedSender<EngineEvent>,
-        _command_rx: tokio::sync::mpsc::UnboundedReceiver<crate::events::DebugLoopCommand>,
-    ) {
-    }
 }

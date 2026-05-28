@@ -4,8 +4,7 @@
 //! This crate contains `unsafe` blocks wrapping Win32 APIs. Every `unsafe` usage
 //! MUST include a safety proof comment per the RDE Constitution (Principle VI).
 
-use rde_core::{DebugBackend, DebugError, ProcessHandle, RegisterContext, ThreadId};
-use rde_core::events::DebugLoopCommand;
+use rde_core::{DebugBackend, DebugChannels, DebugError, ProcessHandle, RegisterContext, ThreadId};
 use std::path::Path;
 
 pub mod debug_loop;
@@ -26,12 +25,50 @@ impl WindowsBackend {
 
 #[async_trait::async_trait]
 impl DebugBackend for WindowsBackend {
-    async fn launch(&self, path: &Path, args: &[String]) -> Result<ProcessHandle, DebugError> {
-        process::launch(path, args).await
+    async fn launch(&self, path: &Path, args: &[String]) -> Result<(ProcessHandle, DebugChannels), DebugError> {
+        let path = path.to_path_buf();
+        let args = args.to_vec();
+        
+        let (event_tx, event_rx) = tokio::sync::mpsc::unbounded_channel();
+        let (debug_loop_tx, debug_loop_rx) = tokio::sync::mpsc::unbounded_channel();
+        let (handle_tx, handle_rx) = tokio::sync::oneshot::channel();
+        
+        // Spawn debug loop thread.  CRITICAL: on Windows, CreateProcessW with
+        // DEBUG_PROCESS and WaitForDebugEvent must run on the *same* thread.
+        std::thread::spawn(move || {
+            match process::launch(&path, &args) {
+                Ok(handle) => {
+                    // Send handle back so the engine can use it immediately.
+                    let _ = handle_tx.send(handle.clone());
+                    // Enter the debug event loop on this thread.
+                    debug_loop::run_debug_loop(&handle, event_tx, debug_loop_rx);
+                }
+                Err(e) => {
+                    tracing::error!("Failed to launch process in debug loop thread: {:?}", e);
+                    // handle_tx is dropped here, so the receiver gets an error.
+                }
+            }
+        });
+        
+        // Wait for the debug loop thread to create the process and send back the handle.
+        let handle = handle_rx.await.map_err(|_| {
+            DebugError::Internal("Debug loop thread died before creating process".into())
+        })?;
+        
+        Ok((handle, (event_rx, debug_loop_tx)))
     }
 
-    async fn attach(&self, pid: u32) -> Result<ProcessHandle, DebugError> {
-        process::attach(pid).await
+    async fn attach(&self, pid: u32) -> Result<(ProcessHandle, DebugChannels), DebugError> {
+        let handle = process::attach(pid)?;
+        let (event_tx, event_rx) = tokio::sync::mpsc::unbounded_channel();
+        let (debug_loop_tx, debug_loop_rx) = tokio::sync::mpsc::unbounded_channel();
+        
+        let handle_for_thread = handle.clone();
+        std::thread::spawn(move || {
+            debug_loop::run_debug_loop(&handle_for_thread, event_tx, debug_loop_rx);
+        });
+        
+        Ok((handle, (event_rx, debug_loop_tx)))
     }
 
     async fn continue_execution(&self, _handle: &ProcessHandle) -> Result<(), DebugError> {
@@ -70,14 +107,5 @@ impl DebugBackend for WindowsBackend {
 
     async fn resume_thread(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<(), DebugError> {
         thread::resume(handle, thread_id)
-    }
-
-    fn on_session_started(
-        &self,
-        handle: &ProcessHandle,
-        event_tx: tokio::sync::mpsc::UnboundedSender<rde_core::EngineEvent>,
-        command_rx: tokio::sync::mpsc::UnboundedReceiver<DebugLoopCommand>,
-    ) {
-        let _ = debug_loop::start_debug_loop(handle, event_tx, command_rx);
     }
 }

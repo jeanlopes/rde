@@ -15,7 +15,6 @@ pub struct DebugEngine<B: DebugBackend> {
     command_rx: mpsc::UnboundedReceiver<EngineCommand>,
     event_tx: mpsc::UnboundedSender<EngineEvent>,
     debug_event_rx: mpsc::UnboundedReceiver<EngineEvent>,
-    debug_event_tx: mpsc::UnboundedSender<EngineEvent>,
     debug_loop_tx: Option<mpsc::UnboundedSender<DebugLoopCommand>>,
     stepping_over_breakpoint: Option<u64>,
 }
@@ -28,7 +27,7 @@ impl<B: DebugBackend> DebugEngine<B> {
     /// Create a new engine and its communication channels.
     pub fn new(backend: B) -> (Self, mpsc::UnboundedSender<EngineCommand>, mpsc::UnboundedReceiver<EngineEvent>) {
         let (command_tx, event_rx, command_rx, event_tx) = engine_channels();
-        let (debug_event_tx, debug_event_rx) = mpsc::unbounded_channel();
+        let (_, debug_event_rx) = mpsc::unbounded_channel();
         let engine = Self {
             backend,
             session: None,
@@ -36,7 +35,6 @@ impl<B: DebugBackend> DebugEngine<B> {
             command_rx,
             event_tx,
             debug_event_rx,
-            debug_event_tx,
             debug_loop_tx: None,
             stepping_over_breakpoint: None,
         };
@@ -50,6 +48,7 @@ impl<B: DebugBackend> DebugEngine<B> {
         loop {
             tokio::select! {
                 Some(cmd) = self.command_rx.recv() => {
+                    eprintln!("[ENGINE] Received command: {:?}", cmd);
                     if let EngineCommand::Quit = cmd {
                         break;
                     }
@@ -60,13 +59,17 @@ impl<B: DebugBackend> DebugEngine<B> {
                     }
                 }
                 Some(evt) = self.debug_event_rx.recv() => {
+                    eprintln!("[ENGINE] Received debug event: {:?}", evt);
                     if let Err(e) = self.handle_event(evt).await {
                         let _ = self.event_tx.send(EngineEvent::Error {
                             message: e.to_string(),
                         });
                     }
                 }
-                else => break,
+                else => {
+                    eprintln!("[ENGINE] All channels closed, exiting");
+                    break;
+                }
             }
         }
         info!("DebugEngine shutting down");
@@ -77,15 +80,17 @@ impl<B: DebugBackend> DebugEngine<B> {
     async fn handle_command(&mut self, cmd: EngineCommand) -> Result<(), DebugError> {
         match cmd {
             EngineCommand::Launch { path, args } => {
-                let handle = self.backend.launch(&path, &args).await?;
+                let (handle, (event_rx, debug_loop_tx)) = self.backend.launch(&path, &args).await?;
                 let pid = handle.process_id;
-                self.start_debug_loop(&handle);
+                self.debug_event_rx = event_rx;
+                self.debug_loop_tx = Some(debug_loop_tx);
                 self.session = Some(Session { handle });
                 let _ = self.event_tx.send(EngineEvent::ProcessLaunched { pid });
             }
             EngineCommand::Attach { pid } => {
-                let handle = self.backend.attach(pid).await?;
-                self.start_debug_loop(&handle);
+                let (handle, (event_rx, debug_loop_tx)) = self.backend.attach(pid).await?;
+                self.debug_event_rx = event_rx;
+                self.debug_loop_tx = Some(debug_loop_tx);
                 self.session = Some(Session { handle });
                 let _ = self.event_tx.send(EngineEvent::ProcessAttached { pid });
             }
@@ -162,6 +167,7 @@ impl<B: DebugBackend> DebugEngine<B> {
 
     #[instrument(skip(self))]
     async fn handle_event(&mut self, evt: EngineEvent) -> Result<(), DebugError> {
+        eprintln!("[ENGINE] handle_event: {:?}", evt);
         match evt {
             EngineEvent::BreakpointHit { id, address, thread_id } => {
                 // Resolve breakpoint ID from address if not provided by debug loop
@@ -174,6 +180,7 @@ impl<B: DebugBackend> DebugEngine<B> {
 
                 if id == 0 {
                     // Unknown breakpoint (e.g., system initial breakpoint) — just report and continue
+                    info!("Unknown breakpoint, sending Continue to debug loop");
                     let _ = self.event_tx.send(EngineEvent::BreakpointHit { id: 0, address, thread_id });
                     if let Some(tx) = &self.debug_loop_tx {
                         let _ = tx.send(DebugLoopCommand::Continue);
@@ -265,6 +272,7 @@ impl<B: DebugBackend> DebugEngine<B> {
                 let _ = self.event_tx.send(EngineEvent::Exception { code, address });
                 // For unknown exceptions, tell debug loop to report as not handled
                 if let Some(tx) = &self.debug_loop_tx {
+                    info!("Engine sending ContinueException to debug loop");
                     let _ = tx.send(DebugLoopCommand::ContinueException);
                 }
             }
@@ -279,6 +287,7 @@ impl<B: DebugBackend> DebugEngine<B> {
                 let _ = self.event_tx.send(EngineEvent::ProcessLaunched { pid });
                 // Auto-continue after initial process creation
                 if let Some(tx) = &self.debug_loop_tx {
+                    info!("Engine sending Continue to debug loop for process creation");
                     let _ = tx.send(DebugLoopCommand::Continue);
                 }
             }
@@ -296,11 +305,7 @@ impl<B: DebugBackend> DebugEngine<B> {
         Ok(())
     }
 
-    fn start_debug_loop(&mut self, handle: &ProcessHandle) {
-        let (debug_loop_tx, debug_loop_rx) = mpsc::unbounded_channel();
-        self.debug_loop_tx = Some(debug_loop_tx);
-        self.backend.on_session_started(handle, self.debug_event_tx.clone(), debug_loop_rx);
-    }
+
 
     async fn set_breakpoint(&mut self, address: u64) -> Result<(), DebugError> {
         let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
