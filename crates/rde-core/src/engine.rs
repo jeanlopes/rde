@@ -82,7 +82,7 @@ impl<B: DebugBackend> DebugEngine<B> {
         loop {
             tokio::select! {
                 Some(cmd) = self.command_rx.recv() => {
-                    eprintln!("[ENGINE] Received command: {:?}", cmd);
+                    tracing::debug!(target: "rde::engine", "Received command: {:?}", cmd);
                     if let EngineCommand::Quit = cmd {
                         break;
                     }
@@ -93,7 +93,7 @@ impl<B: DebugBackend> DebugEngine<B> {
                     }
                 }
                 Some(evt) = self.debug_event_rx.recv() => {
-                    eprintln!("[ENGINE] Received debug event: {:?}", evt);
+                    tracing::debug!(target: "rde::engine", "Received debug event: {:?}", evt);
                     if let Err(e) = self.handle_event(evt).await {
                         let _ = self.event_tx.send(EngineEvent::Error {
                             message: e.to_string(),
@@ -101,7 +101,7 @@ impl<B: DebugBackend> DebugEngine<B> {
                     }
                 }
                 else => {
-                    eprintln!("[ENGINE] All channels closed, exiting");
+                    tracing::info!(target: "rde::engine", "All channels closed, exiting");
                     break;
                 }
             }
@@ -165,6 +165,8 @@ impl<B: DebugBackend> DebugEngine<B> {
             }
             EngineCommand::DeleteBreakpoint { id } => {
                 self.breakpoints.remove(id)?;
+                let list: Vec<_> = self.breakpoints.list().into_iter().cloned().collect();
+                let _ = self.event_tx.send(EngineEvent::BreakpointList { list: list.clone() });
                 let _ = self.event_tx.send(EngineEvent::Output {
                     message: format!("Breakpoint {id} removido."),
                 });
@@ -175,6 +177,9 @@ impl<B: DebugBackend> DebugEngine<B> {
                     "No thread selected".into()
                 ))?;
                 let regs = self.backend.get_registers(&session.handle, tid).await?;
+                let _ = self.event_tx.send(EngineEvent::Registers {
+                    ctx: regs.clone(),
+                });
                 let _ = self.event_tx.send(EngineEvent::Output {
                     message: format_registers(&regs),
                 });
@@ -198,6 +203,10 @@ impl<B: DebugBackend> DebugEngine<B> {
                 let tid = thread_id.or(session.selected_thread).ok_or(DebugError::Internal(
                     "No thread selected".into()
                 ))?;
+                let ctx = self.backend.get_registers(&session.handle, tid).await?;
+                let _ = self.event_tx.send(EngineEvent::Registers {
+                    ctx: ctx.clone(),
+                });
                 let _ = self.event_tx.send(EngineEvent::Output {
                     message: format!("Backtrace for thread {tid} not yet implemented"),
                 });
@@ -296,7 +305,7 @@ impl<B: DebugBackend> DebugEngine<B> {
 
     #[instrument(skip(self))]
     async fn handle_event(&mut self, evt: EngineEvent) -> Result<(), DebugError> {
-        eprintln!("[ENGINE] handle_event: {:?}", evt);
+        tracing::debug!(target: "rde::engine", "handle_event: {:?}", evt);
         let from_state = self.current_state();
 
         match evt {
@@ -323,16 +332,15 @@ impl<B: DebugBackend> DebugEngine<B> {
                             target: "rde::engine::transition",
                             address = format!("0x{:x}", address),
                             thread_id,
-                            "SystemInitial breakpoint hit — continuing without register manipulation"
+                            "SystemInitial breakpoint hit — waiting for user continue"
                         );
                         let _ = self.event_tx.send(EngineEvent::BreakpointHit {
                             kind: BreakpointKind::SystemInitial,
                             address,
                             thread_id,
                         });
-                        if let Some(tx) = &self.debug_loop_tx {
-                            let _ = tx.send(DebugLoopCommand::Continue);
-                        }
+                        // Do NOT auto-continue. The debugger stops at the system breakpoint
+                        // so the user can inspect state and set breakpoints before running.
                         let to_state = self.current_state();
                         self.log_transition(&from_state, &to_state);
                         return Ok(());
@@ -551,8 +559,6 @@ impl<B: DebugBackend> DebugEngine<B> {
         let (addr, rip) = match (address, symbol) {
             (Some(a), _) => (a, None),
             (None, Some(sym)) => {
-                // TODO: Integrate with symbol engine when architectural refactor is done.
-                // For now, return a clear error.
                 return Err(DebugError::Internal(format!(
                     "Symbol '{sym}' not found (symbol resolution not yet integrated)"
                 )));
@@ -582,6 +588,8 @@ impl<B: DebugBackend> DebugEngine<B> {
 
         match view {
             Ok(view) => {
+                let lines = view.lines.clone();
+                let _ = self.event_tx.send(EngineEvent::Disassembly { lines });
                 let _ = self.event_tx.send(EngineEvent::Output {
                     message: view.format(),
                 });
@@ -611,6 +619,8 @@ impl<B: DebugBackend> DebugEngine<B> {
         self.backend.write_memory(&session.handle, address, &[0xCC]).await?;
 
         let id = self.breakpoints.set(address, original[0]);
+        let list: Vec<_> = self.breakpoints.list().into_iter().cloned().collect();
+        let _ = self.event_tx.send(EngineEvent::BreakpointList { list });
 
         let _ = self.event_tx.send(EngineEvent::Output {
             message: format!("Breakpoint {id} definido em 0x{address:x}"),

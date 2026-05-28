@@ -1,0 +1,14 @@
+# Golden Path: TUI Debug Session
+# Expected event/render sequence after launching with --tui and hitting a breakpoint
+
+1. TUI starts in alternate screen with 5-pane layout
+2. EngineEvent::ProcessLaunched emitted → status bar shows "Running"
+3. EngineEvent::BreakpointHit emitted → status bar shows "Paused"
+4. Registers pane renders RAX–R15 from EngineEvent::Registers
+5. Source/ASM pane highlights current RIP with green "=>"
+6. Breakpoints pane lists active breakpoints from EngineEvent::BreakpointList
+7. Stack pane renders frames from EngineEvent::StackTrace (if available)
+8. REPL pane shows command prompt "> " ready for input
+9. User presses Tab → focus moves to Registers pane (yellow border)
+10. User types "continue" in REPL and presses Enter → EngineCommand::Continue sent
+11. EngineEvent::ProcessExited emitted → status bar shows "Exited"

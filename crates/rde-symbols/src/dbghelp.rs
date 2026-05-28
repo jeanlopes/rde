@@ -307,9 +307,137 @@ impl crate::SymbolEngine for DbgHelpSymbolEngine {
         })
     }
 
-    fn walk_stack(&self, _thread_id: u32) -> Result<Vec<StackFrame>, DebugError> {
-        warn!("walk_stack requires thread context (CONTEXT) which is not yet exposed cross-crate");
-        Ok(vec![])
+    fn walk_stack(&self, thread_id: u32) -> Result<Vec<StackFrame>, DebugError> {
+        use windows::Win32::Foundation::CloseHandle;
+        use windows::Win32::System::Threading::{
+            OpenThread, ResumeThread, SuspendThread,
+            THREAD_GET_CONTEXT, THREAD_QUERY_INFORMATION, THREAD_SUSPEND_RESUME,
+        };
+        use windows::Win32::System::Diagnostics::Debug::{GetThreadContext, CONTEXT};
+
+        if self.process_handle == 0 {
+            return Err(DebugError::Internal("DbgHelp not initialized".into()));
+        }
+
+        // SAFETY: OpenProcess in initialize already gave us a valid process handle.
+        let h_thread = unsafe {
+            OpenThread(
+                THREAD_GET_CONTEXT | THREAD_SUSPEND_RESUME | THREAD_QUERY_INFORMATION,
+                false,
+                thread_id,
+            )
+        };
+        let h_thread = match h_thread {
+            Ok(h) => h,
+            Err(e) => {
+                return Err(DebugError::Win32Error {
+                    code: e.code().0 as u32,
+                    message: format!("OpenThread failed for TID {thread_id}"),
+                });
+            }
+        };
+
+        // Suspend thread to get a stable context
+        unsafe { SuspendThread(h_thread) };
+
+        let mut ctx = CONTEXT::default();
+        ctx.ContextFlags = windows::Win32::System::Diagnostics::Debug::CONTEXT_FLAGS(0x10002F); // CONTEXT_FULL | CONTEXT_DEBUG_REGISTERS
+
+        let ctx_ok = unsafe { GetThreadContext(h_thread, &mut ctx) };
+        if let Err(e) = ctx_ok {
+            unsafe { let _ = ResumeThread(h_thread); };
+            unsafe { let _ = CloseHandle(h_thread); };
+            return Err(DebugError::Win32Error {
+                code: e.code().0 as u32,
+                message: format!("GetThreadContext failed for TID {thread_id}"),
+            });
+        }
+
+        let mut frame = STACKFRAME64 {
+            addr_pc: ADDRESS64 {
+                offset: ctx.Rip,
+                segment: 0,
+                mode: 3, // AddrModeFlat
+            },
+            addr_frame: ADDRESS64 {
+                offset: ctx.Rbp,
+                segment: 0,
+                mode: 3,
+            },
+            addr_stack: ADDRESS64 {
+                offset: ctx.Rsp,
+                segment: 0,
+                mode: 3,
+            },
+            addr_return: ADDRESS64 {
+                offset: 0,
+                segment: 0,
+                mode: 3,
+            },
+            addr_bstore: ADDRESS64 {
+                offset: 0,
+                segment: 0,
+                mode: 3,
+            },
+            func_table_entry: std::ptr::null_mut(),
+            params: [0; 4],
+            far_: 0,
+            virtual_: 0,
+            reserved: [0; 3],
+            kdhelp: KDHELP64 {
+                thread: 0,
+                th_callback_stack: 0,
+                th_callback_bstore: 0,
+                next_callback: 0,
+                frame_pointer: 0,
+                ki_call_user_mode: 0,
+                ke_user_callback_dispatcher: 0,
+                system_range_start: 0,
+                ki_user_exception_dispatcher: 0,
+                stack_base: 0,
+                stack_limit: 0,
+                reserved: [0; 5],
+            },
+        };
+
+        let mut frames = Vec::new();
+        let machine_type: DWORD = 0x8664; // IMAGE_FILE_MACHINE_AMD64
+
+        for i in 0..128 {
+            let ok = unsafe {
+                (self.loader.stack_walk64)(
+                    machine_type,
+                    self.process_handle,
+                    h_thread.0 as isize,
+                    &mut frame,
+                    &mut ctx as *mut _ as *mut c_void,
+                    None,
+                    None,
+                    None,
+                    None,
+                )
+            };
+            if ok == 0 {
+                break;
+            }
+            if frame.addr_pc.offset == 0 {
+                break;
+            }
+
+            let symbol = self.resolve(frame.addr_pc.offset).ok();
+            frames.push(StackFrame {
+                frame_number: i,
+                return_address: frame.addr_return.offset,
+                frame_pointer: frame.addr_frame.offset,
+                stack_pointer: frame.addr_stack.offset,
+                symbol,
+            });
+        }
+
+        unsafe { let _ = ResumeThread(h_thread); };
+        unsafe { let _ = CloseHandle(h_thread); };
+
+        Ok(frames)
     }
 
     fn load_module(&mut self, base: u64, path: &str) -> Result<(), DebugError> {

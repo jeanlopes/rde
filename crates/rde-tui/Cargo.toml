@@ -1,0 +1,15 @@
+[package]
+name = "rde-tui"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rde-core = { path = "../rde-core" }
+tokio = { workspace = true, features = ["time"] }
+tracing = { workspace = true }
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream"] }
+futures = "0.3"

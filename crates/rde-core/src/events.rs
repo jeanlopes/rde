@@ -127,4 +127,20 @@ pub enum EngineEvent {
     Output {
         message: String,
     },
+    /// Structured register context response.
+    Registers {
+        ctx: crate::RegisterContext,
+    },
+    /// Structured disassembly response.
+    Disassembly {
+        lines: Vec<crate::DisassemblyLine>,
+    },
+    /// Structured breakpoint list.
+    BreakpointList {
+        list: Vec<crate::Breakpoint>,
+    },
+    /// Structured stack trace response.
+    StackTrace {
+        frames: Vec<crate::StackFrame>,
+    },
 }

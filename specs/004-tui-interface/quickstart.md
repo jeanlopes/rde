@@ -1,4 +1,6 @@
-# Quickstart: RDE Debugger
+# Quickstart: TUI Debugger Interface
+
+**Feature**: TUI Interface with Multi-Pane Layout
 
 ## Prerequisites
 
@@ -13,29 +15,17 @@ cd C:\workspace\rde
 cargo build --release
 ```
 
-## Launch Modes
-
-### Text REPL (default)
+## Launch the TUI
 
 ```bash
-# Launch and auto-start target
-cargo run --bin rde-cli -- path\to\debuggee.exe
+# Launch with TUI mode and auto-start a target
+cargo run --bin rde-cli -- --tui --target path\to\debuggee.exe
 
-# Attach to running process
-cargo run --bin rde-cli -- --attach <PID>
-```
-
-### TUI Mode
-
-```bash
-# Launch with TUI and auto-start target
-cargo run --bin rde-cli -- --tui path\to\debuggee.exe
-
-# Attach to a running process with TUI
+# Attach to a running process
 cargo run --bin rde-cli -- --tui --attach <PID>
 ```
 
-## TUI Layout
+## Layout
 
 The TUI opens with a multi-pane layout:
 
@@ -60,15 +50,15 @@ The TUI opens with a multi-pane layout:
 | `F5` | Continue execution |
 | `F10` | Step over |
 | `F11` | Step into |
-| `F9` | Toggle breakpoint at current address |
-| `Ctrl+C` | Break into debugger |
+| `F9` | Toggle breakpoint at current line/address |
+| `Ctrl+C` | Send interrupt / break into debugger |
 | `Ctrl+Q` | Quit TUI and end session |
-| `↑/↓` | Scroll within focused pane / navigate REPL history |
+| `↑/↓` | Scroll within focused pane |
 | `Enter` | Submit command (when REPL pane is focused) |
 
 ## REPL Commands
 
-When the REPL pane is focused (or in text REPL mode), type commands:
+When the REPL pane is focused, type commands as you would in the text REPL:
 
 ```
 > break 0x140001000
@@ -77,11 +67,14 @@ When the REPL pane is focused (or in text REPL mode), type commands:
 > read_mem 0x7ff6_0000_0000 64
 > registers
 > backtrace
-> modules
-> threads
-> quit
 ```
+
+Command output appears in the REPL pane's scrollback area.
+
+## Adjusting Pane Sizes
+
+Use `Ctrl + ←/→` or `Ctrl + ↑/↓` to resize the focused pane (if the terminal supports it).
 
 ## Minimum Terminal Size
 
-The TUI requires a terminal of at least **80 columns × 24 rows**. If the terminal is smaller, a warning is displayed.
+The TUI requires a terminal of at least **80 columns × 24 rows**. If the terminal is smaller, a warning message is displayed.

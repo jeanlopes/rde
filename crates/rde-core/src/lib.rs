@@ -10,6 +10,8 @@ pub mod events;
 
 pub use engine::DebugEngine;
 pub use events::{BreakpointKind, DebugLoopCommand, EngineCommand, EngineEvent};
+pub use disasm::{DisassemblyLine, DisassemblyView, DisassemblyConfig};
+pub use breakpoint::{Breakpoint, BreakpointManager, BreakpointState};
 
 /// Unique identifier for a debug session.
 pub type SessionId = uuid::Uuid;
