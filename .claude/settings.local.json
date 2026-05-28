@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "PowerShell(New-Item -ItemType Directory -Force -Path \"c:\\\\workspace\\\\rdc_app\\\\crates\\\\lldb-native\\\\src\")",
+      "PowerShell($env:LLDB_SYS_PREFIX; Test-Path \"C:\\\\Program Files\\\\LLVM\\\\bin\\\\liblldb.dll\"; Test-Path \"C:\\\\Program Files\\\\LLVM\\\\bin\\\\lldb.exe\"; [System.Environment]::GetEnvironmentVariable\\(\"LLDB_DLL_DIR\", \"Machine\"\\); [System.Environment]::GetEnvironmentVariable\\(\"LLDB_DLL_DIR\", \"User\"\\))",
+      "PowerShell(cd c:\\\\workspace\\\\rdc_app; cargo check --package runtime-core --package lldb-native --package win-debug-bridge --package mcp-server 2>&1 | Where-Object { $_ -match \"error|warning\" } | Select-Object -First 50)"
+    ]
+  }
+}

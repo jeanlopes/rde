@@ -1,3 +1,27 @@
+# Rust
+target/
+Cargo.lock
+Cargo.lock
+**/*.rs.bk
+*.rlib
+*.prof*
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Env
+.env*
+
+# Spec Kit agent contexts
 .claude/
 .kimi/
 .specify/
