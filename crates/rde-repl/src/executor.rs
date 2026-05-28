@@ -30,6 +30,24 @@ pub fn execute(cmd: &EngineCommand) -> String {
         EngineCommand::ListThreads => "Listing threads...".into(),
         EngineCommand::ListModules => "Listing modules...".into(),
         EngineCommand::SelectThread { id } => format!("Selecting thread {id}..."),
+        EngineCommand::Disassemble { address, symbol, .. } => {
+            if let Some(addr) = address {
+                format!("Disassembling at 0x{addr:x}...")
+            } else if let Some(sym) = symbol {
+                format!("Disassembling symbol {sym}...")
+            } else {
+                "Disassembling at RIP...".into()
+            }
+        }
+        EngineCommand::SetDisassemblyConfig { auto_show, count } => {
+            if let Some(auto) = auto_show {
+                format!("auto-disassemble = {}", if *auto { "on" } else { "off" })
+            } else if let Some(c) = count {
+                format!("disassembly-count = {c}")
+            } else {
+                "No config change".into()
+            }
+        }
         EngineCommand::Quit => "Quitting...".into(),
     }
 }

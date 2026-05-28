@@ -85,6 +85,46 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
             let id = parts[1].parse().map_err(|_| "invalid thread id")?;
             Ok(EngineCommand::SelectThread { id })
         }
+        "disas" | "disassemble" => {
+            let mut address = None;
+            let mut symbol = None;
+            let mut count = None;
+            if parts.len() >= 2 {
+                let arg = parts[1];
+                if let Ok(addr) = parse_hex(arg) {
+                    address = Some(addr);
+                } else {
+                    symbol = Some(arg.to_string());
+                }
+                if parts.len() >= 3 {
+                    count = parts[2].parse().ok();
+                }
+            }
+            Ok(EngineCommand::Disassemble { address, symbol, thread_id: None, count })
+        }
+        "set" => {
+            if parts.len() < 3 {
+                return Err("usage: set <option> <value>".into());
+            }
+            match parts[1] {
+                "auto-disassemble" => {
+                    let auto_show = match parts[2] {
+                        "on" => Some(true),
+                        "off" => Some(false),
+                        _ => return Err("usage: set auto-disassemble on|off".into()),
+                    };
+                    Ok(EngineCommand::SetDisassemblyConfig { auto_show, count: None })
+                }
+                "disassembly-count" => {
+                    let c = parts[2].parse().map_err(|_| "invalid count")?;
+                    if c < 1 || c > 100 {
+                        return Err("count must be between 1 and 100".into());
+                    }
+                    Ok(EngineCommand::SetDisassemblyConfig { auto_show: None, count: Some(c) })
+                }
+                _ => Err(format!("unknown set option: {}", parts[1])),
+            }
+        }
         "quit" | "q" | "exit" => Ok(EngineCommand::Quit),
         _ => Err(format!("comando desconhecido: {}", parts[0])),
     }
@@ -112,5 +152,47 @@ mod tests {
     #[test]
     fn test_parse_modules() {
         assert!(matches!(parse("modules").unwrap(), EngineCommand::ListModules));
+    }
+
+    #[test]
+    fn test_parse_disassemble_no_args() {
+        let cmd = parse("disassemble").unwrap();
+        assert!(matches!(cmd, EngineCommand::Disassemble { address: None, symbol: None, thread_id: None, count: None }));
+    }
+
+    #[test]
+    fn test_parse_disas_address() {
+        let cmd = parse("disas 0x140001000").unwrap();
+        assert!(matches!(cmd, EngineCommand::Disassemble { address: Some(0x140001000), symbol: None, thread_id: None, count: None }));
+    }
+
+    #[test]
+    fn test_parse_disassemble_address_with_count() {
+        let cmd = parse("disassemble 0x140001000 20").unwrap();
+        assert!(matches!(cmd, EngineCommand::Disassemble { address: Some(0x140001000), symbol: None, thread_id: None, count: Some(20) }));
+    }
+
+    #[test]
+    fn test_parse_disassemble_symbol() {
+        let cmd = parse("disassemble main").unwrap();
+        assert!(matches!(cmd, EngineCommand::Disassemble { address: None, symbol: Some(ref s), thread_id: None, count: None } if s == "main"));
+    }
+
+    #[test]
+    fn test_parse_set_auto_disassemble_on() {
+        let cmd = parse("set auto-disassemble on").unwrap();
+        assert!(matches!(cmd, EngineCommand::SetDisassemblyConfig { auto_show: Some(true), count: None }));
+    }
+
+    #[test]
+    fn test_parse_set_auto_disassemble_off() {
+        let cmd = parse("set auto-disassemble off").unwrap();
+        assert!(matches!(cmd, EngineCommand::SetDisassemblyConfig { auto_show: Some(false), count: None }));
+    }
+
+    #[test]
+    fn test_parse_set_disassembly_count() {
+        let cmd = parse("set disassembly-count 25").unwrap();
+        assert!(matches!(cmd, EngineCommand::SetDisassemblyConfig { auto_show: None, count: Some(25) }));
     }
 }

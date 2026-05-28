@@ -24,6 +24,9 @@ pub trait SymbolEngine: Send + Sync {
     /// Unload symbols for a module that has been unloaded.
     fn unload_module(&mut self, base: u64) -> Result<(), DebugError>;
 
+    /// Resolve symbol(s) by name. Returns all matching addresses.
+    fn resolve_by_name(&self, name: &str) -> Result<Vec<u64>, DebugError>;
+
     /// Cleanup symbol resources.
     fn cleanup(&mut self) -> Result<(), DebugError>;
 }
@@ -50,6 +53,10 @@ impl SymbolEngine for StubSymbolEngine {
 
     fn unload_module(&mut self, _base: u64) -> Result<(), DebugError> {
         Ok(())
+    }
+
+    fn resolve_by_name(&self, _name: &str) -> Result<Vec<u64>, DebugError> {
+        Err(DebugError::Internal("symbol resolution not yet implemented".into()))
     }
 
     fn cleanup(&mut self) -> Result<(), DebugError> {

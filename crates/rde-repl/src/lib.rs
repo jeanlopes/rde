@@ -3,10 +3,28 @@
 use rde_core::{EngineCommand, EngineEvent};
 use tokio::sync::mpsc;
 use tracing::info;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 
 pub mod executor;
 pub mod formatter;
 pub mod parser;
+
+/// REPL configuration state.
+#[derive(Debug, Clone)]
+pub struct ReplConfig {
+    pub auto_disassemble: bool,
+    pub disassembly_count: usize,
+}
+
+impl Default for ReplConfig {
+    fn default() -> Self {
+        Self {
+            auto_disassemble: false,
+            disassembly_count: 10,
+        }
+    }
+}
 
 /// Run the REPL loop.
 pub async fn run(
@@ -14,10 +32,15 @@ pub async fn run(
     command_tx: mpsc::UnboundedSender<EngineCommand>,
 ) {
     info!("REPL started");
+    let config = Arc::new(Mutex::new(ReplConfig::default()));
+    let config_events = config.clone();
+    let cmd_tx = command_tx.clone();
 
     // Spawn event listener
     tokio::spawn(async move {
         while let Some(event) = event_rx.recv().await {
+            let auto_disassemble = config_events.lock().await.auto_disassemble;
+            let count = config_events.lock().await.disassembly_count;
             match event {
                 EngineEvent::ProcessLaunched { pid } => println!("Processo iniciado: PID {pid}"),
                 EngineEvent::ProcessAttached { pid } => println!("Anexado ao processo: PID {pid}"),
@@ -33,6 +56,37 @@ pub async fn run(
                             println!("[Unknown Breakpoint] Hit em 0x{address:x} — Thread {thread_id}")
                         }
                     }
+                    if auto_disassemble {
+                        let _ = cmd_tx.send(EngineCommand::Disassemble {
+                            address: None,
+                            symbol: None,
+                            thread_id: Some(thread_id),
+                            count: Some(count),
+                        });
+                    }
+                }
+                EngineEvent::SingleStep { address, thread_id } => {
+                    println!("[Single Step] 0x{address:x} — Thread {thread_id}");
+                    if auto_disassemble {
+                        let _ = cmd_tx.send(EngineCommand::Disassemble {
+                            address: None,
+                            symbol: None,
+                            thread_id: Some(thread_id),
+                            count: Some(count),
+                        });
+                    }
+                }
+                EngineEvent::Exception { code, address } => {
+                    println!("[Exception 0x{code:08X}] em 0x{address:x}");
+                    if auto_disassemble {
+                        // No specific thread_id for exception; let engine use selected/fallback
+                        let _ = cmd_tx.send(EngineCommand::Disassemble {
+                            address: None,
+                            symbol: None,
+                            thread_id: None,
+                            count: Some(count),
+                        });
+                    }
                 }
                 EngineEvent::ProcessExited { code } => println!("[Processo encerrado] código: {code}"),
                 EngineEvent::ThreadCreated { id, .. } => println!("[Thread criada] TID {id}"),
@@ -41,7 +95,6 @@ pub async fn run(
                 EngineEvent::ModuleUnloaded { base } => println!("[Módulo descarregado] 0x{base:x}"),
                 EngineEvent::Error { message } => println!("Erro: {message}"),
                 EngineEvent::Output { message } => println!("{message}"),
-                _ => {}
             }
         }
     });
@@ -67,6 +120,20 @@ pub async fn run(
                     Ok(EngineCommand::Quit) => {
                         let _ = command_tx.send(EngineCommand::Quit);
                         break;
+                    }
+                    Ok(EngineCommand::SetDisassemblyConfig { auto_show, count }) => {
+                        {
+                            let mut cfg = config.lock().await;
+                            if let Some(auto) = auto_show {
+                                cfg.auto_disassemble = auto;
+                                println!("auto-disassemble = {}", if auto { "on" } else { "off" });
+                            }
+                            if let Some(c) = count {
+                                cfg.disassembly_count = c;
+                                println!("disassembly-count = {c}");
+                            }
+                        }
+                        let _ = command_tx.send(EngineCommand::SetDisassemblyConfig { auto_show, count });
                     }
                     Ok(cmd) => {
                         let _ = command_tx.send(cmd);
