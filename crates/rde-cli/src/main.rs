@@ -17,16 +17,35 @@ struct Args {
     /// Arguments to pass to the target
     #[arg(trailing_var_arg = true, allow_hyphen_values = true)]
     target_args: Vec<String>,
+
+    /// Run with TUI interface instead of text REPL
+    #[arg(long)]
+    tui: bool,
 }
 
 #[tokio::main]
 async fn main() {
-    let subscriber = FmtSubscriber::builder()
-        .with_max_level(Level::INFO)
-        .finish();
-    tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
-
     let args = Args::parse();
+
+    if args.tui {
+        // In TUI mode, redirect logs to a file to avoid polluting the terminal.
+        let log_file = std::fs::OpenOptions::new()
+            .create(true)
+            .append(true)
+            .open("rde-debug.log")
+            .expect("failed to open log file");
+        let subscriber = FmtSubscriber::builder()
+            .with_max_level(Level::INFO)
+            .with_writer(move || log_file.try_clone().unwrap())
+            .finish();
+        tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    } else {
+        let subscriber = FmtSubscriber::builder()
+            .with_max_level(Level::INFO)
+            .finish();
+        tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
+    }
+
     info!("RDE CLI starting");
 
     let backend = WindowsBackend::new();
@@ -64,8 +83,14 @@ async fn main() {
         });
     }
 
-    // Run REPL
-    rde_repl::run(event_rx, command_tx).await;
+    // Run TUI or REPL
+    if args.tui {
+        if let Err(e) = rde_tui::run(event_rx, command_tx).await {
+            eprintln!("TUI error: {e}");
+        }
+    } else {
+        rde_repl::run(event_rx, command_tx).await;
+    }
 
     // Wait for engine to finish
     let _ = engine_handle.await;

@@ -95,6 +95,10 @@ pub async fn run(
                 EngineEvent::ModuleUnloaded { base } => println!("[Módulo descarregado] 0x{base:x}"),
                 EngineEvent::Error { message } => println!("Erro: {message}"),
                 EngineEvent::Output { message } => println!("{message}"),
+                _ => {
+                    // Structured events (Registers, Disassembly, BreakpointList, StackTrace)
+                    // are consumed by the TUI; the text REPL ignores them.
+                }
             }
         }
     });

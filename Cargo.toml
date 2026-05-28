@@ -6,6 +6,7 @@ members = [
     "crates/rde-symbols",
     "crates/rde-breakpoint",
     "crates/rde-repl",
+    "crates/rde-tui",
     "crates/rde-cli",
 ]
 
@@ -34,6 +35,7 @@ windows = { version = "0.56", features = [
     "Win32_System_ProcessStatus",
     "Win32_Foundation",
     "Win32_Security",
+    "Win32_Storage_FileSystem",
 ] }
 libloading = "0.8"
 capstone = "0.12"
@@ -45,3 +47,4 @@ rde-win32 = { path = "crates/rde-win32" }
 rde-symbols = { path = "crates/rde-symbols" }
 rde-breakpoint = { path = "crates/rde-breakpoint" }
 rde-repl = { path = "crates/rde-repl" }
+rde-tui = { path = "crates/rde-tui" }

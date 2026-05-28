@@ -7,8 +7,9 @@ project.
 
 ## Active Plan
 
-- **Feature**: 002-thread-module-tracking
-- **Spec**: [specs/002-thread-module-tracking/spec.md](specs/002-thread-module-tracking/spec.md)
+- **Feature**: 004-tui-interface
+- **Spec**: [specs/004-tui-interface/spec.md](specs/004-tui-interface/spec.md)
+- **Plan**: [specs/004-tui-interface/plan.md](specs/004-tui-interface/plan.md)
 - **Plan**: [specs/002-thread-module-tracking/plan.md](specs/002-thread-module-tracking/plan.md)
 
 ## Constitution
