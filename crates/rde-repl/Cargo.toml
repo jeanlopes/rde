@@ -11,6 +11,9 @@ rde-core = { workspace = true }
 rde-win32 = { workspace = true }
 rde-symbols = { workspace = true }
 rde-breakpoint = { workspace = true }
+rde-pretty-print = { workspace = true }
+rde-tokio = { workspace = true }
+rde-orchestrator = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }

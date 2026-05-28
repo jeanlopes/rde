@@ -187,6 +187,10 @@ impl<B: DebugBackend> DebugEngine<B> {
             EngineCommand::ReadMemory { address, size } => {
                 let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
                 let bytes = self.backend.read_memory(&session.handle, address, size).await?;
+                let _ = self.event_tx.send(EngineEvent::MemoryBytes {
+                    address,
+                    bytes: bytes.clone(),
+                });
                 let _ = self.event_tx.send(EngineEvent::Output {
                     message: format_hex_dump(address, &bytes),
                 });

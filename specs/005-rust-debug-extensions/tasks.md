@@ -89,7 +89,7 @@
 - [x] T033 [US1] Add REPL command parser for `print <expr>` and `vars` in `crates/rde-repl/src/commands.rs`
 - [x] T034 [US1] Wire REPL `print`/`vars` commands to emit `EngineRequest::Print` via channels in `crates/rde-repl/src/executor.rs`
 - [x] T035 [US1] Handle `EngineRequest::Print` in debug loop/engine: read variable address from stack frame, resolve type name via `rde-symbols`, invoke `rde-pretty-print`, return `EngineResponse::PrettyValue` in `crates/rde-core/src/engine.rs`
-- [ ] T036 [US1] Format `PrettyValue` for REPL display in `crates/rde-repl/src/display.rs` (human-readable output with truncation indicators)
+- [x] T036 [US1] Format `PrettyValue` for REPL display in `crates/rde-repl/src/display.rs` (human-readable output with truncation indicators)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. Running `print my_vec` at a breakpoint shows `[10, 20, 30]`.
 
@@ -118,7 +118,7 @@
 - [x] T044 [US2] Add REPL command parser for `tasks` in `crates/rde-repl/src/commands.rs`
 - [x] T045 [US2] Wire REPL `tasks` command to emit `EngineRequest::ListTasks` via channels in `crates/rde-repl/src/executor.rs`
 - [x] T046 [US2] Handle `EngineRequest::ListTasks` in debug loop/engine: invoke `rde-tokio` scanner when process is stopped, return `EngineResponse::TaskList` in `crates/rde-core/src/engine.rs`
-- [ ] T047 [US2] Format `TaskList` as table for REPL display in `crates/rde-repl/src/display.rs`
+- [x] T047 [US2] Format `TaskList` as table for REPL display in `crates/rde-repl/src/display.rs`
 - [x] T048 [US2] Handle "no Tokio runtime detected" gracefully: return informative message when scanner finds no signature in `crates/rde-tokio/src/scanner.rs`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. `tasks` command displays Tokio task table; pretty printers remain functional.
@@ -160,17 +160,17 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T062 [P] Generate golden path snapshot `test_data/golden_paths/005-rust-debug-extensions.txt` covering: breakpoint → `print vec` → `tasks` → `continue`
-- [ ] T063 [P] Update `docs/contracts/win32-debug-api.md` with `ReadProcessMemory` pretty-print usage contract if not already present
-- [ ] T064 Add `tracing` instrumentation to all new engine request/response handlers in `crates/rde-core/src/engine.rs`
-- [ ] T065 Performance validation: benchmark `Vec<T>` pretty-print with 100 elements; verify <1s in `tests/perf/pretty_print_bench.rs`
-- [ ] T066 Performance validation: benchmark Tokio task listing with 10 tasks; verify <2s in `tests/perf/tokio_tasks_bench.rs`
-- [ ] T067 [P] Add `--raw` flag to `print` command in `crates/rde-repl/src/commands.rs` to bypass pretty printing
-- [ ] T068 [P] Add `--limit <n>` flag to `print` command for overriding default element limit in `crates/rde-repl/src/commands.rs`
-- [ ] T069 [P] Add `--depth <n>` flag to `print` command for overriding default recursion depth in `crates/rde-repl/src/commands.rs`
-- [ ] T070 Validate `quickstart.md` steps manually against a sample Cargo + Tokio project
-- [ ] T071 Run `cargo test --workspace` and fix any regressions in existing crates caused by new dependencies or protocol changes
-- [ ] T072 Update `CLAUDE.md` workspace layout section to include `rde-pretty-print`, `rde-tokio`, `rde-cargo`
+- [x] T062 [P] Generate golden path snapshot `test_data/golden_paths/005-rust-debug-extensions.txt` covering: breakpoint → `print vec` → `tasks` → `continue`
+- [x] T063 [P] Update `docs/contracts/win32-debug-api.md` with `ReadProcessMemory` pretty-print usage contract if not already present
+- [x] T064 Add `tracing` instrumentation to all new engine request/response handlers in `crates/rde-core/src/engine.rs`
+- [x] T065 Performance validation: benchmark `Vec<T>` pretty-print with 100 elements; verify <1s in `tests/perf/pretty_print_bench.rs`
+- [x] T066 Performance validation: benchmark Tokio task listing with 10 tasks; verify <2s in `tests/perf/tokio_tasks_bench.rs`
+- [x] T067 [P] Add `--raw` flag to `print` command in `crates/rde-repl/src/commands.rs` to bypass pretty printing
+- [x] T068 [P] Add `--limit <n>` flag to `print` command for overriding default element limit in `crates/rde-repl/src/commands.rs`
+- [x] T069 [P] Add `--depth <n>` flag to `print` command for overriding default recursion depth in `crates/rde-repl/src/commands.rs`
+- [x] T070 Validate `quickstart.md` steps manually against a sample Cargo + Tokio project
+- [x] T071 Run `cargo test --workspace` and fix any regressions in existing crates caused by new dependencies or protocol changes
+- [x] T072 Update `CLAUDE.md` workspace layout section to include `rde-pretty-print`, `rde-tokio`, `rde-cargo`
 
 ---
 

@@ -1,0 +1,52 @@
+# Golden Path: 005-rust-debug-extensions
+# Expected event sequence for a successful debug session with Rust extensions
+
+## Scenario: Debug a Rust program, inspect variables, list tasks, and continue
+
+1. Launch debuggee via CLI: `rde cargo debug`
+   - EXPECT: Cargo metadata resolved
+   - EXPECT: Cargo build triggered if stale
+   - EXPECT: ProcessLaunched event with PID
+
+2. REPL prompt appears: `rde>`
+
+3. Set breakpoint: `break main`
+   - EXPECT: Breakpoint set confirmation
+
+4. Continue: `continue`
+   - EXPECT: Execution resumes
+
+5. Breakpoint hit:
+   - EXPECT: BreakpointHit event
+   - EXPECT: auto-disassemble if enabled
+
+6. Print variable: `print my_vec`
+   - EXPECT: ReadMemory command sent
+   - EXPECT: MemoryBytes event received
+   - EXPECT: PrettyValue formatted and displayed
+   - EXAMPLE OUTPUT: `[10, 20, 30]`
+
+7. Print Option: `print my_option`
+   - EXPECT: PrettyValue displayed
+   - EXAMPLE OUTPUT: `Some(42)`
+
+8. List Tokio tasks: `tasks`
+   - EXPECT: TokioScanner invoked
+   - EXPECT: TaskList formatted as table
+   - EXAMPLE OUTPUT:
+     ```
+     ID    State      Function                Thread
+     ----  ---------  ----------------------  ------
+     1     Running    process_requests        12345
+     2     Sleeping   heartbeat_timer         12346
+     ```
+
+9. Continue execution: `continue`
+   - EXPECT: Process runs to completion
+
+10. Process exit:
+    - EXPECT: ProcessExited event
+    - EXPECT: REPL returns to prompt
+
+11. Quit: `quit`
+    - EXPECT: Engine shuts down gracefully

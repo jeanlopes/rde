@@ -11,6 +11,7 @@ members = [
     "crates/rde-pretty-print",
     "crates/rde-tokio",
     "crates/rde-cargo",
+    "crates/rde-orchestrator",
 ]
 
 [workspace.package]
@@ -54,3 +55,4 @@ rde-tui = { path = "crates/rde-tui" }
 rde-pretty-print = { path = "crates/rde-pretty-print" }
 rde-tokio = { path = "crates/rde-tokio" }
 rde-cargo = { path = "crates/rde-cargo" }
+rde-orchestrator = { path = "crates/rde-orchestrator" }

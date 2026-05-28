@@ -26,12 +26,17 @@ Key non-negotiables:
 
 ```
 crates/
-  rde-core/         — Traits, types, engine state machine, channels
-  rde-win32/        — Win32 API backend (unsafe zone)
-  rde-symbols/      — DbgHelp integration, demangling
-  rde-breakpoint/   — Breakpoint manager
-  rde-repl/         — Command parser, REPL loop
-  rde-cli/          — Binary entry point
+  rde-core/           — Traits, types, engine state machine, channels
+  rde-win32/          — Win32 API backend (unsafe zone)
+  rde-symbols/        — DbgHelp integration, demangling
+  rde-breakpoint/     — Breakpoint manager
+  rde-repl/           — Command parser, REPL loop
+  rde-tui/            — TUI interface (ratatui)
+  rde-cli/            — Binary entry point
+  rde-pretty-print/   — Rust value pretty printers (Option, Vec, String, etc.)
+  rde-tokio/          — Tokio async task inspection
+  rde-cargo/          — Cargo project integration, target resolution, build trigger
+  rde-orchestrator/   — High-level coordination between engine and extension crates
 ```
 
 ## Commands

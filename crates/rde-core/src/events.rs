@@ -167,4 +167,9 @@ pub enum EngineEvent {
     CargoLaunchResult {
         result: Result<u32, String>,
     },
+    /// Raw memory bytes response (for pretty-print integration).
+    MemoryBytes {
+        address: u64,
+        bytes: Vec<u8>,
+    },
 }

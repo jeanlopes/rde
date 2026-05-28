@@ -93,13 +93,18 @@ async fn main() {
             let manifest_path = std::env::current_dir()
                 .unwrap_or_default()
                 .join("Cargo.toml");
-            let _ = command_tx.send(rde_core::EngineCommand::CargoLaunch {
-                manifest_path,
-                package,
-                target,
-                profile,
-                features,
-            });
+            match rde_orchestrator::cargo_resolve_and_build(&manifest_path, package, target, profile, features).await {
+                Ok(artifact_path) => {
+                    let _ = command_tx.send(rde_core::EngineCommand::Launch {
+                        path: artifact_path,
+                        args: vec![],
+                    });
+                }
+                Err(e) => {
+                    eprintln!("Cargo debug failed: {e}");
+                    std::process::exit(1);
+                }
+            }
         }
         None if args.target.is_some() => {
             let target = args.target.unwrap();
