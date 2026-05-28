@@ -7,10 +7,9 @@ project.
 
 ## Active Plan
 
-- **Feature**: 004-tui-interface
-- **Spec**: [specs/004-tui-interface/spec.md](specs/004-tui-interface/spec.md)
-- **Plan**: [specs/004-tui-interface/plan.md](specs/004-tui-interface/plan.md)
-- **Plan**: [specs/002-thread-module-tracking/plan.md](specs/002-thread-module-tracking/plan.md)
+- **Feature**: 005-rust-debug-extensions
+- **Spec**: [specs/005-rust-debug-extensions/spec.md](specs/005-rust-debug-extensions/spec.md)
+- **Plan**: [specs/005-rust-debug-extensions/plan.md](specs/005-rust-debug-extensions/plan.md)
 
 ## Constitution
 
