@@ -1,8 +1,21 @@
 //! Debug event loop using WaitForDebugEventEx.
 //!
-//! CRITICAL: On Windows, `CreateProcessW` with `DEBUG_PROCESS` and
+//! CRITICAL INVARIANT — THREAD AFFINITY:
+//! On Windows, `CreateProcessW` with `DEBUG_PROCESS` and
 //! `WaitForDebugEventEx` MUST run on the *same* thread.  Therefore this
 //! function is called from the thread that also created the process.
+//!
+//! CRITICAL INVARIANT — DEBUG_EVENT VALIDITY:
+//! The `DEBUG_EVENT` struct is ONLY valid when `WaitForDebugEventEx` returns
+//! `Ok(())`. On `Err` (including timeouts), the struct is UNINITIALIZED and
+//! MUST NOT be read or passed to `ContinueDebugEvent`.
+//! Violation: ERROR_INVALID_HANDLE (0x06) spam.
+//!
+//! CRITICAL INVARIANT — SYSTEM INITIAL BREAKPOINT:
+//! Windows inserts an `int3` in ntdll before the entry point. This is NOT a
+//! user breakpoint. It must be continued with DBG_CONTINUE only — never
+//! decrement RIP, never set Trap Flag, never restore original byte.
+//! Violation: infinite breakpoint→single-step→breakpoint loop.
 
 use rde_core::{DebugLoopCommand, EngineEvent, ProcessHandle};
 use tokio::sync::mpsc;
@@ -32,11 +45,18 @@ pub fn run_debug_loop(
     let mut process_running = true;
     while process_running {
         let mut event = DEBUG_EVENT::default();
+        // INVARIANT: event is ONLY valid when WaitForDebugEventEx returns Ok(()).
         match unsafe { WaitForDebugEventEx(&mut event, 100) } {
             Ok(()) => {
+                // SAFE: event is fully populated. We may read dwDebugEventCode,
+                // call dispatch_event, and later call ContinueDebugEvent with
+                // event.dwProcessId / dwThreadId.
                 info!(
-                    "Debug event: code={:?} pid={} tid={}",
-                    event.dwDebugEventCode, event.dwProcessId, event.dwThreadId
+                    target: "rde::debug_loop::state",
+                    code = ?event.dwDebugEventCode,
+                    pid = event.dwProcessId,
+                    tid = event.dwThreadId,
+                    "WaitForDebugEventEx returned Ok"
                 );
 
                 let needs_continue = dispatch_event(&event, &event_tx);
@@ -95,9 +115,19 @@ pub fn run_debug_loop(
                 }
             }
             Err(e) => {
+                // SAFE: event is UNINITIALIZED here. Do NOT read it.
+                // Do NOT call dispatch_event. Do NOT call ContinueDebugEvent.
                 let code = e.code().0 as u32;
-                if code != 0x00000102 { // ERROR_SEM_TIMEOUT
-                    warn!("WaitForDebugEventEx failed: error=0x{:08X}", code);
+                if code == 0x00000102 {
+                    // ERROR_SEM_TIMEOUT — normal timeout, ignore silently
+                } else if code == 0x80070079 {
+                    // Post-exit timeout after process death, ignore silently
+                } else {
+                    warn!(
+                        target: "rde::debug_loop::state",
+                        error_code = format!("0x{:08X}", code),
+                        "WaitForDebugEventEx returned Err"
+                    );
                 }
             }
         }
@@ -154,8 +184,10 @@ fn dispatch_event(
             info!("Exception: code 0x{:08X} at 0x{:X}", code, address);
 
             if code == STATUS_BREAKPOINT {
+                // The debug loop does not know if this is a system breakpoint
+                // or a user-defined one. Send Unknown and let the engine resolve.
                 let _ = tx.send(EngineEvent::BreakpointHit {
-                    id: 0, // Engine resolves breakpoint ID from address
+                    kind: rde_core::BreakpointKind::Unknown,
                     address,
                     thread_id: event.dwThreadId,
                 });

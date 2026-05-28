@@ -1,11 +1,38 @@
 //! Debug engine orchestrator.
 
 use crate::channel::engine_channels;
-use crate::events::DebugLoopCommand;
+use crate::events::{BreakpointKind, DebugLoopCommand};
 use crate::{DebugBackend, DebugError, EngineCommand, EngineEvent, ProcessHandle};
 use crate::breakpoint::BreakpointManager;
 use tokio::sync::mpsc;
 use tracing::{info, instrument};
+
+/// Snapshot of engine state for structured transition logging.
+#[derive(Debug, Clone)]
+struct EngineStateSnapshot {
+    has_session: bool,
+    breakpoint_count: usize,
+    stepping_over: Option<u64>,
+}
+
+impl<B: DebugBackend> DebugEngine<B> {
+    fn current_state(&self) -> EngineStateSnapshot {
+        EngineStateSnapshot {
+            has_session: self.session.is_some(),
+            breakpoint_count: self.breakpoints.list().len(),
+            stepping_over: self.stepping_over_breakpoint,
+        }
+    }
+
+    fn log_transition(&self, from: &EngineStateSnapshot, to: &EngineStateSnapshot) {
+        info!(
+            target: "rde::engine::transition",
+            ?from,
+            ?to,
+            "state transition"
+        );
+    }
+}
 
 /// Orchestrates a debug session.
 pub struct DebugEngine<B: DebugBackend> {
@@ -168,68 +195,110 @@ impl<B: DebugBackend> DebugEngine<B> {
     #[instrument(skip(self))]
     async fn handle_event(&mut self, evt: EngineEvent) -> Result<(), DebugError> {
         eprintln!("[ENGINE] handle_event: {:?}", evt);
+        let from_state = self.current_state();
+
         match evt {
-            EngineEvent::BreakpointHit { id, address, thread_id } => {
-                // Resolve breakpoint ID from address if not provided by debug loop
-                let id = if id == 0 {
-                    self.breakpoints.find_by_address(address).map(|bp| bp.id).unwrap_or(0)
-                } else {
-                    id
+            EngineEvent::BreakpointHit { kind, address, thread_id } => {
+                // INVARIANT: System breakpoints (e.g., Windows initial breakpoint in ntdll)
+                // must be continued with DBG_CONTINUE only. Never restore original byte,
+                // never decrement RIP, never set Trap Flag.
+                // Violation: infinite breakpoint→single-step→breakpoint loop.
+                let kind = match kind {
+                    BreakpointKind::Unknown => {
+                        // Resolve from breakpoint manager by address
+                        if let Some(bp) = self.breakpoints.find_by_address(address) {
+                            BreakpointKind::UserDefined(bp.id)
+                        } else {
+                            BreakpointKind::SystemInitial
+                        }
+                    }
+                    other => other,
                 };
-                info!("Breakpoint {id} hit at 0x{address:x} on thread {thread_id}");
 
-                if id == 0 {
-                    // Unknown breakpoint (e.g., system initial breakpoint) — just report and continue
-                    info!("Unknown breakpoint, sending Continue to debug loop");
-                    let _ = self.event_tx.send(EngineEvent::BreakpointHit { id: 0, address, thread_id });
-                    if let Some(tx) = &self.debug_loop_tx {
-                        let _ = tx.send(DebugLoopCommand::Continue);
-                    }
-                    return Ok(());
-                }
-
-                if let Some(session) = &self.session {
-                    // 1. Restore original byte
-                    if let Some(bp) = self.breakpoints.get(id) {
-                        let original = bp.original_byte;
-                        if let Err(e) = self.backend.write_memory(&session.handle, address, &[original]).await {
-                            let _ = self.event_tx.send(EngineEvent::Error {
-                                message: format!("Failed to restore breakpoint byte: {e}"),
-                            });
-                        }
-                    }
-
-                    // 2. Decrement RIP so it points to the original instruction
-                    let mut ctx = match self.backend.get_registers(&session.handle, thread_id).await {
-                        Ok(c) => c,
-                        Err(e) => {
-                            let _ = self.event_tx.send(EngineEvent::Error {
-                                message: format!("Failed to get registers: {e}"),
-                            });
-                            let _ = self.event_tx.send(EngineEvent::BreakpointHit { id, address, thread_id });
-                            return Ok(());
-                        }
-                    };
-                    ctx.rip = address;
-
-                    // 3. Set Trap Flag for single step
-                    ctx.rflags |= 0x100;
-                    if let Err(e) = self.backend.set_registers(&session.handle, thread_id, &ctx).await {
-                        let _ = self.event_tx.send(EngineEvent::Error {
-                            message: format!("Failed to set registers: {e}"),
+                match kind {
+                    BreakpointKind::SystemInitial => {
+                        info!(
+                            target: "rde::engine::transition",
+                            address = format!("0x{:x}", address),
+                            thread_id,
+                            "SystemInitial breakpoint hit — continuing without register manipulation"
+                        );
+                        let _ = self.event_tx.send(EngineEvent::BreakpointHit {
+                            kind: BreakpointKind::SystemInitial,
+                            address,
+                            thread_id,
                         });
+                        if let Some(tx) = &self.debug_loop_tx {
+                            let _ = tx.send(DebugLoopCommand::Continue);
+                        }
+                        let to_state = self.current_state();
+                        self.log_transition(&from_state, &to_state);
+                        return Ok(());
                     }
+                    BreakpointKind::UserDefined(id) => {
+                        info!(
+                            target: "rde::engine::transition",
+                            breakpoint_id = id,
+                            address = format!("0x{:x}", address),
+                            thread_id,
+                            "UserDefined breakpoint hit — applying full protocol"
+                        );
 
-                    // 4. Remember we are stepping over this breakpoint
-                    self.stepping_over_breakpoint = Some(address);
-                }
+                        if let Some(session) = &self.session {
+                            // 1. Restore original byte
+                            if let Some(bp) = self.breakpoints.get(id) {
+                                let original = bp.original_byte;
+                                if let Err(e) = self.backend.write_memory(&session.handle, address, &[original]).await {
+                                    let _ = self.event_tx.send(EngineEvent::Error {
+                                        message: format!("Failed to restore breakpoint byte: {e}"),
+                                    });
+                                }
+                            }
 
-                // 5. Forward event to REPL
-                let _ = self.event_tx.send(EngineEvent::BreakpointHit { id, address, thread_id });
+                            // 2. Decrement RIP so it points to the original instruction
+                            let mut ctx = match self.backend.get_registers(&session.handle, thread_id).await {
+                                Ok(c) => c,
+                                Err(e) => {
+                                    let _ = self.event_tx.send(EngineEvent::Error {
+                                        message: format!("Failed to get registers: {e}"),
+                                    });
+                                    let _ = self.event_tx.send(EngineEvent::BreakpointHit {
+                                        kind: BreakpointKind::UserDefined(id),
+                                        address,
+                                        thread_id,
+                                    });
+                                    let to_state = self.current_state();
+                                    self.log_transition(&from_state, &to_state);
+                                    return Ok(());
+                                }
+                            };
+                            ctx.rip = address;
 
-                // 6. Tell debug loop to continue (will single-step over restored instruction)
-                if let Some(tx) = &self.debug_loop_tx {
-                    let _ = tx.send(DebugLoopCommand::Continue);
+                            // 3. Set Trap Flag for single step
+                            ctx.rflags |= 0x100;
+                            if let Err(e) = self.backend.set_registers(&session.handle, thread_id, &ctx).await {
+                                let _ = self.event_tx.send(EngineEvent::Error {
+                                    message: format!("Failed to set registers: {e}"),
+                                });
+                            }
+
+                            // 4. Remember we are stepping over this breakpoint
+                            self.stepping_over_breakpoint = Some(address);
+                        }
+
+                        // 5. Forward event to REPL
+                        let _ = self.event_tx.send(EngineEvent::BreakpointHit {
+                            kind: BreakpointKind::UserDefined(id),
+                            address,
+                            thread_id,
+                        });
+
+                        // 6. Tell debug loop to continue (will single-step over restored instruction)
+                        if let Some(tx) = &self.debug_loop_tx {
+                            let _ = tx.send(DebugLoopCommand::Continue);
+                        }
+                    }
+                    BreakpointKind::Unknown => unreachable!("Unknown should have been resolved above"),
                 }
             }
             EngineEvent::SingleStep { address, thread_id } => {

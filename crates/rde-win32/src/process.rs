@@ -1,4 +1,11 @@
 //! Process launching and attaching.
+//!
+//! CRITICAL INVARIANT — THREAD AFFINITY:
+//! `CreateProcessW` with `DEBUG_PROCESS` must be called on the same thread
+//! that will later call `WaitForDebugEventEx`. Violation produces silent
+//! failures or ERROR_INVALID_HANDLE.
+//!
+//! RDE enforcement: `launch_sync` is called from inside the debug loop thread.
 
 use rde_core::{DebugError, ProcessHandle, RawHandle};
 use std::ffi::OsStr;
@@ -15,6 +22,9 @@ const DEBUG_PROCESS: u32 = 0x00000001;
 const DEBUG_ONLY_THIS_PROCESS: u32 = 0x00000002;
 
 /// Launch a process under the debugger.
+///
+/// INVARIANT: This function must be called from the thread that will run
+/// `WaitForDebugEventEx` (the debug loop thread).
 #[instrument]
 pub fn launch(path: &Path, args: &[String]) -> Result<ProcessHandle, DebugError> {
     let mut cmdline = build_command_line(path, args);

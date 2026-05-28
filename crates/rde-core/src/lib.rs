@@ -8,7 +8,7 @@ pub mod engine;
 pub mod events;
 
 pub use engine::DebugEngine;
-pub use events::{DebugLoopCommand, EngineCommand, EngineEvent};
+pub use events::{BreakpointKind, DebugLoopCommand, EngineCommand, EngineEvent};
 
 /// Unique identifier for a debug session.
 pub type SessionId = uuid::Uuid;

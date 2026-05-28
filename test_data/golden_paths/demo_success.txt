@@ -1,0 +1,27 @@
+# Golden Path: rust_app_example.exe --demo
+# Captured: 2026-05-28
+# This file documents the expected event sequence for a successful run.
+# When debugging regressions, diff the observed event stream against this path.
+# The FIRST diverging event is where the bug starts.
+
+[t+0ms]   ProcessLaunched      { pid: <PID> }
+[t+0ms]   ModuleLoaded         { name: "unknown", base: 0 }
+[t+0ms]   ModuleLoaded         { name: "unknown", base: 0 }
+[t+0ms]   ModuleLoaded         { name: "unknown", base: 0 }
+[t+0ms]   ThreadCreated        { id: <TID_1> }
+[t+0ms]   ModuleLoaded         { name: "unknown", base: 0 }
+[t+0ms]   ThreadCreated        { id: <TID_2> }
+[t+0ms]   ModuleLoaded         { name: "unknown", base: 0 }
+[t+0ms]   ThreadCreated        { id: <TID_3> }
+[t+0ms]   BreakpointHit        { kind: SystemInitial, address: <NTDLL_INT3>, thread_id: <MAIN_TID> }
+# ^ System initial breakpoint in ntdll. Engine resolves Unknown -> SystemInitial.
+#   No register manipulation. DBG_CONTINUE only.
+[t+0ms]   ModuleLoaded         { name: "unknown", base: 0 }
+[t+0ms]   ModuleLoaded         { name: "unknown", base: 0 }
+[t+~2ms]  ThreadExited         { id: <TID_2>, code: 0 }
+[t+~2ms]  ThreadExited         { id: <TID_1>, code: 0 }
+[t+~2ms]  ThreadExited         { id: <TID_3>, code: 0 }
+[t+~2ms]  ProcessExited        { code: 0 }
+
+# End of golden path. Total events: 15 (approx).
+# Key invariant verified: SystemInitial breakpoint is handled without register manipulation.

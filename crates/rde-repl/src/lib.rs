@@ -21,8 +21,18 @@ pub async fn run(
             match event {
                 EngineEvent::ProcessLaunched { pid } => println!("Processo iniciado: PID {pid}"),
                 EngineEvent::ProcessAttached { pid } => println!("Anexado ao processo: PID {pid}"),
-                EngineEvent::BreakpointHit { id, address, thread_id } => {
-                    println!("[Breakpoint {id}] Hit em 0x{address:x} — Thread {thread_id}")
+                EngineEvent::BreakpointHit { kind, address, thread_id } => {
+                    match kind {
+                        rde_core::BreakpointKind::SystemInitial => {
+                            println!("[System Breakpoint] Hit em 0x{address:x} — Thread {thread_id}")
+                        }
+                        rde_core::BreakpointKind::UserDefined(id) => {
+                            println!("[Breakpoint {id}] Hit em 0x{address:x} — Thread {thread_id}")
+                        }
+                        rde_core::BreakpointKind::Unknown => {
+                            println!("[Unknown Breakpoint] Hit em 0x{address:x} — Thread {thread_id}")
+                        }
+                    }
                 }
                 EngineEvent::ProcessExited { code } => println!("[Processo encerrado] código: {code}"),
                 EngineEvent::Error { message } => println!("Erro: {message}"),
