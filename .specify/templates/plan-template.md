@@ -42,6 +42,25 @@
 
 [Gates determined based on constitution file]
 
+## API Contracts & Invariants
+
+*GATE: Required for any plan touching `crates/rde-win32` or the debug loop / engine state machine.*
+
+List every Win32 API or architectural boundary this feature will use. For each, state:
+
+| API / Boundary | Pre-conditions | Post-conditions (Ok) | Post-conditions (Err) | Invariant |
+|----------------|---------------|----------------------|-----------------------|-----------|
+| e.g., `WaitForDebugEventEx` | Same thread as `CreateProcessW` | `DEBUG_EVENT` valid | `DEBUG_EVENT` undefined | Never read `event` on `Err` |
+| e.g., `ContinueDebugEvent` | IDs from successful `WaitForDebugEventEx` | Thread resumes | — | Call exactly once per event |
+
+**Type-system distinctions:**
+- [ ] Does this feature introduce system-vs-user event ambiguity? If yes, how will the type system enforce distinct handling paths?
+- [ ] Are magic values (e.g., `id == 0`) used to distinguish categories? If yes, refactor plan to use an enum.
+
+**Golden path:**
+- [ ] After implementation, what is the expected event sequence for the primary success scenario?
+- [ ] Where will the golden path snapshot be stored (`test_data/golden_paths/<feature>.txt`)?
+
 ## Project Structure
 
 ### Documentation (this feature)

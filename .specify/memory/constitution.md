@@ -154,6 +154,37 @@ coordination, symbol caching) MUST be documented with inline diagrams or state-m
 code requires a committee to understand, it has failed its user. The goal is a small, fast,
 modern engine — not a second LLDB.
 
+### VIII. Contract-First Debugging (NON-NEGOTIABLE)
+
+When a bug appears in the debugger, the first question is ALWAYS: *"Which Win32 API invariant
+or RDE architectural contract is being violated?"* Trial-and-error debugging by adjusting
+timeouts, flags, or re-ordering statements without understanding the underlying contract is
+FORBIDDEN.
+
+Every Win32 API used in `crates/rde-win32` MUST have a documented contract in
+`docs/contracts/win32-debug-api.md` (or a feature-specific contract file) containing:
+- **Pre-conditions** (what MUST be true before the call)
+- **Post-conditions on success** (what is guaranteed after `Ok`)
+- **Post-conditions on failure** (what is guaranteed after `Err`, especially undefined state)
+- **Invariants** (rules that MUST hold across all call sites)
+
+All contract violations MUST be documented as inline code comments using the pattern:
+```rust
+// INVARIANT: <statement of the invariant>
+// VIOLATION: <what happens if broken, with issue reference>
+```
+
+System events (e.g., Windows initial breakpoint in `ntdll`) and user events (e.g., INT3
+breakpoints set by the engine) MUST be semantically distinct in the type system. The compiler
+MUST enforce different handling paths — runtime `if` checks on magic values (e.g., `id == 0`)
+are insufficient after the MVP.
+
+**Rationale**: Debugging a debugger is pathological — there is no meta-debugger to observe the
+observer. The only defense is ruthless explicitness in contracts, state, and sequencing. The
+three most expensive bugs in RDE's history (thread-affinity violation, timeout struct misuse,
+and system-breakpoint infinite loop) were all caused by implicit assumptions that would have
+been caught by documented contracts and type-system distinctions.
+
 ## Technology Stack & Architecture Constraints
 
 - **Primary language**: Rust (stable toolchain; MSRV declared in workspace `Cargo.toml`)
@@ -170,6 +201,8 @@ modern engine — not a second LLDB.
 - **TUI (post-MVP)**: `ratatui`
 - **Serialization**: `serde` with `serde_json` or `postcard` for config and snapshots
 - **Logging**: `tracing` — all event-handling code paths MUST emit structured logs
+- **Contract docs**: `docs/contracts/` — one file per critical Win32 API; format fixed
+- **Golden paths**: `test_data/golden_paths/` — snapshot event sequences from successful runs
 - **Testing**: `cargo test`, `insta` for snapshots, `mockall` for mock backends
 - **External dependencies policy**: ZERO runtime dependencies outside of Rust crates.
   `cargo build` on a fresh Windows machine with Rust installed MUST produce a working binary.
@@ -208,6 +241,11 @@ modern engine — not a second LLDB.
   Non-compliant plans MUST NOT advance to task generation.
 - **Observability gate**: Any PR adding a new runtime-event-handling code path that lacks
   `tracing` instrumentation MUST be rejected at review.
+- **Contract gate**: Any PR modifying `crates/rde-win32` that touches a Win32 debug API without
+  updating or referencing `docs/contracts/` MUST be rejected. New API usage requires a new
+  contract document.
+- **Golden-path gate**: Any PR fixing a debugger bug MUST include or update a golden path in
+  `test_data/golden_paths/` that demonstrates the fixed scenario.
 - **Zero-install gate**: Any PR that introduces a dependency on a system-installed tool, runtime,
   or interpreter (LLDB, Python, etc.) MUST be rejected. All dependencies MUST be expressible in
   `Cargo.toml`.
@@ -236,4 +274,4 @@ an approved exception documented in this Governance section.
 truth for project governance. In any conflict between this document and other guidance files, this
 constitution prevails.
 
-**Version**: 4.0.0 | **Ratified**: 2026-05-20 | **Last Amended**: 2026-05-28
+**Version**: 4.1.0 | **Ratified**: 2026-05-20 | **Last Amended**: 2026-05-28
