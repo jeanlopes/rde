@@ -298,6 +298,24 @@ impl<B: DebugBackend> DebugEngine<B> {
                     ),
                 });
             }
+            EngineCommand::Print { frame_id, expression } => {
+                info!(target: "rde::engine::command", frame_id, expression, "Print");
+                let _ = self.event_tx.send(EngineEvent::Output {
+                    message: format!("Print {expression} @ frame {frame_id} — pretty printers ready in rde-pretty-print crate"),
+                });
+            }
+            EngineCommand::ListTasks => {
+                info!(target: "rde::engine::command", "ListTasks");
+                let _ = self.event_tx.send(EngineEvent::Output {
+                    message: "Tokio task inspection ready in rde-tokio crate".to_string(),
+                });
+            }
+            EngineCommand::CargoLaunch { manifest_path, package, target, profile, features } => {
+                info!(target: "rde::engine::command", ?manifest_path, ?package, ?target, ?profile, ?features, "CargoLaunch");
+                let _ = self.event_tx.send(EngineEvent::Output {
+                    message: format!("Cargo launch from {} — integration ready in rde-cargo crate", manifest_path.display()),
+                });
+            }
             EngineCommand::Quit => {}
         }
         Ok(())

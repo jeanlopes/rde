@@ -48,6 +48,13 @@ pub fn execute(cmd: &EngineCommand) -> String {
                 "No config change".into()
             }
         }
+        EngineCommand::Print { frame_id, expression } => {
+            format!("Printing {expression} @ frame {frame_id}...")
+        }
+        EngineCommand::ListTasks => "Listing Tokio tasks...".into(),
+        EngineCommand::CargoLaunch { manifest_path, .. } => {
+            format!("Launching Cargo project: {}", manifest_path.display())
+        }
         EngineCommand::Quit => "Quitting...".into(),
     }
 }

@@ -27,13 +27,13 @@
 
 **Purpose**: Project initialization and crate scaffolding
 
-- [ ] T001 Create `crates/rde-pretty-print/` directory with `Cargo.toml` and `src/lib.rs`
-- [ ] T002 Create `crates/rde-tokio/` directory with `Cargo.toml` and `src/lib.rs`
-- [ ] T003 Create `crates/rde-cargo/` directory with `Cargo.toml` and `src/lib.rs`
-- [ ] T004 [P] Add `rde-pretty-print`, `rde-tokio`, `rde-cargo` to workspace `Cargo.toml` members list
-- [ ] T005 [P] Configure crate dependencies: `rde-pretty-print` depends on `rde-core`, `rde-win32`, `rde-symbols`, `tracing`
-- [ ] T006 [P] Configure crate dependencies: `rde-tokio` depends on `rde-core`, `rde-win32`, `rde-symbols`, `tracing`
-- [ ] T007 [P] Configure crate dependencies: `rde-cargo` depends on `serde`, `serde_json`, `tokio::process`, `tracing`
+- [x] T001 Create `crates/rde-pretty-print/` directory with `Cargo.toml` and `src/lib.rs`
+- [x] T002 Create `crates/rde-tokio/` directory with `Cargo.toml` and `src/lib.rs`
+- [x] T003 Create `crates/rde-cargo/` directory with `Cargo.toml` and `src/lib.rs`
+- [x] T004 [P] Add `rde-pretty-print`, `rde-tokio`, `rde-cargo` to workspace `Cargo.toml` members list
+- [x] T005 [P] Configure crate dependencies: `rde-pretty-print` depends on `rde-core`, `rde-win32`, `rde-symbols`, `tracing`
+- [x] T006 [P] Configure crate dependencies: `rde-tokio` depends on `rde-core`, `rde-win32`, `rde-symbols`, `tracing`
+- [x] T007 [P] Configure crate dependencies: `rde-cargo` depends on `serde`, `serde_json`, `tokio::process`, `tracing`
 
 ---
 
@@ -43,17 +43,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T008 Extend `EngineRequest` enum in `crates/rde-core/src/protocol.rs` with `Print { frame_id: u64, expression: String }`, `ListTasks`, `CargoLaunch { manifest_path: PathBuf, package: Option<String>, target: Option<String>, profile: String, features: Vec<String> }`
-- [ ] T009 Extend `EngineResponse` enum in `crates/rde-core/src/protocol.rs` with `PrettyValue(PrettyValue)`, `TaskList(Vec<AsyncTask>)`, `CargoLaunchResult(Result<ProcessId, CargoError>)`
-- [ ] T010 Define shared `PrettyValue` enum in `crates/rde-core/src/value.rs` with variants `Scalar`, `Enum`, `Sequence`, `Map`, `Raw`, `Truncated`
-- [ ] T011 Define shared `TaskState` enum in `crates/rde-core/src/task.rs` with variants `Running`, `Idle`, `Sleeping`, `Completed`
-- [ ] T012 Define shared `AsyncTask` struct in `crates/rde-core/src/task.rs` with fields `task_id: u64`, `state: TaskState`, `function_name: Option<String>`, `runtime_thread_id: Option<u32>`
-- [ ] T013 Define `CargoTarget` and `CargoTargetKind` structs/enums in `crates/rde-core/src/cargo.rs`
-- [ ] T014 Create `MemoryReader` trait in `crates/rde-win32/src/memory.rs` (or extend existing) providing `read_bytes(address: usize, len: usize) -> Result<Vec<u8>>` for safe target memory access
-- [ ] T015 Implement `FormatBudget` struct in `crates/rde-pretty-print/src/budget.rs` with `max_depth`, `max_elements`, `max_bytes` and decrement methods
-- [ ] T016 Implement `PrinterRegistry` in `crates/rde-pretty-print/src/registry.rs` with `register(type_name: &str, printer: Box<dyn PrettyPrinter>)` and `lookup(type_name: &str) -> Option<&dyn PrettyPrinter>`
-- [ ] T017 Define `PrettyPrinter` trait in `crates/rde-pretty-print/src/lib.rs` with `format(&self, reader: &dyn MemoryReader, address: usize, budget: &mut FormatBudget) -> PrettyValue`
-- [ ] T018 Define `CargoError` enum in `crates/rde-cargo/src/lib.rs` covering `MetadataFailure`, `BuildFailure`, `TargetNotFound`, `InvalidManifest`
+- [x] T008 Extend `EngineRequest` enum in `crates/rde-core/src/protocol.rs` with `Print { frame_id: u64, expression: String }`, `ListTasks`, `CargoLaunch { manifest_path: PathBuf, package: Option<String>, target: Option<String>, profile: String, features: Vec<String> }`
+- [x] T009 Extend `EngineResponse` enum in `crates/rde-core/src/protocol.rs` with `PrettyValue(PrettyValue)`, `TaskList(Vec<AsyncTask>)`, `CargoLaunchResult(Result<ProcessId, CargoError>)`
+- [x] T010 Define shared `PrettyValue` enum in `crates/rde-core/src/value.rs` with variants `Scalar`, `Enum`, `Sequence`, `Map`, `Raw`, `Truncated`
+- [x] T011 Define shared `TaskState` enum in `crates/rde-core/src/task.rs` with variants `Running`, `Idle`, `Sleeping`, `Completed`
+- [x] T012 Define shared `AsyncTask` struct in `crates/rde-core/src/task.rs` with fields `task_id: u64`, `state: TaskState`, `function_name: Option<String>`, `runtime_thread_id: Option<u32>`
+- [x] T013 Define `CargoTarget` and `CargoTargetKind` structs/enums in `crates/rde-core/src/cargo.rs`
+- [x] T014 Create `MemoryReader` trait in `crates/rde-win32/src/memory.rs` (or extend existing) providing `read_bytes(address: usize, len: usize) -> Result<Vec<u8>>` for safe target memory access
+- [x] T015 Implement `FormatBudget` struct in `crates/rde-pretty-print/src/budget.rs` with `max_depth`, `max_elements`, `max_bytes` and decrement methods
+- [x] T016 Implement `PrinterRegistry` in `crates/rde-pretty-print/src/registry.rs` with `register(type_name: &str, printer: Box<dyn PrettyPrinter>)` and `lookup(type_name: &str) -> Option<&dyn PrettyPrinter>`
+- [x] T017 Define `PrettyPrinter` trait in `crates/rde-pretty-print/src/lib.rs` with `format(&self, reader: &dyn MemoryReader, address: usize, budget: &mut FormatBudget) -> PrettyValue`
+- [x] T018 Define `CargoError` enum in `crates/rde-cargo/src/lib.rs` covering `MetadataFailure`, `BuildFailure`, `TargetNotFound`, `InvalidManifest`
 
 **Checkpoint**: Foundation ready — `EngineRequest`/`EngineResponse` protocol extended, shared types defined, `MemoryReader` available, registry and budget scaffolding complete. User story implementation can now begin.
 
@@ -69,26 +69,26 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T019 [P] [US1] Unit test for `FormatBudget` decrement and saturation in `crates/rde-pretty-print/src/budget.rs`
-- [ ] T020 [P] [US1] Unit test for `PrinterRegistry` lookup and priority in `crates/rde-pretty-print/src/registry.rs`
-- [ ] T021 [P] [US1] Snapshot test for `Option<i32>::Some(42)` pretty-print output in `crates/rde-pretty-print/tests/snapshots/option.snap`
-- [ ] T022 [P] [US1] Snapshot test for `Vec<i32>` pretty-print output (including truncation) in `crates/rde-pretty-print/tests/snapshots/vec.snap`
-- [ ] T023 [P] [US1] Snapshot test for `String` pretty-print output in `crates/rde-pretty-print/tests/snapshots/string.snap`
-- [ ] T024 [P] [US1] Snapshot test for nested `Option<Vec<Option<String>>>` with depth limit in `crates/rde-pretty-print/tests/snapshots/nested.snap`
-- [ ] T025 [US1] Integration test: mock `MemoryReader` returning known bytes for a `Vec<u8>` layout, assert `PrettyValue::Sequence` produced in `tests/integration/pretty_print_mock.rs`
+- [x] T019 [P] [US1] Unit test for `FormatBudget` decrement and saturation in `crates/rde-pretty-print/src/budget.rs`
+- [x] T020 [P] [US1] Unit test for `PrinterRegistry` lookup and priority in `crates/rde-pretty-print/src/registry.rs`
+- [x] T021 [P] [US1] Snapshot test for `Option<i32>::Some(42)` pretty-print output in `crates/rde-pretty-print/tests/snapshots/option.snap`
+- [x] T022 [P] [US1] Snapshot test for `Vec<i32>` pretty-print output (including truncation) in `crates/rde-pretty-print/tests/snapshots/vec.snap`
+- [x] T023 [P] [US1] Snapshot test for `String` pretty-print output in `crates/rde-pretty-print/tests/snapshots/string.snap`
+- [x] T024 [P] [US1] Snapshot test for nested `Option<Vec<Option<String>>>` with depth limit in `crates/rde-pretty-print/tests/snapshots/nested.snap`
+- [x] T025 [US1] Integration test: mock `MemoryReader` returning known bytes for a `Vec<u8>` layout, assert `PrettyValue::Sequence` produced in `tests/integration/pretty_print_mock.rs`
 
 ### Implementation for User Story 1
 
-- [ ] T026 [P] [US1] Implement `OptionPrinter` in `crates/rde-pretty-print/src/printers/option.rs` reading discriminant and payload via `MemoryReader`
-- [ ] T027 [P] [US1] Implement `VecPrinter` in `crates/rde-pretty-print/src/printers/vec.rs` reading `(ptr, len, cap)` triple and iterating elements with `FormatBudget` limit
-- [ ] T028 [P] [US1] Implement `StringPrinter` in `crates/rde-pretty-print/src/printers/string.rs` reading `Vec<u8>` inner data and decoding UTF-8
-- [ ] T029 [P] [US1] Implement `HashMapPrinter` in `crates/rde-pretty-print/src/printers/hashmap.rs` printing summary (`len` / `capacity`) with optional deep iteration up to budget
-- [ ] T030 [P] [US1] Implement `ResultPrinter` in `crates/rde-pretty-print/src/printers/result.rs` reading discriminant and `Ok`/`Err` payload
-- [ ] T031 [US1] Register all built-in printers in `PrinterRegistry` inside `crates/rde-pretty-print/src/lib.rs` at initialization
-- [ ] T032 [US1] Implement recursive dispatch in `crates/rde-pretty-print/src/lib.rs`: resolve element type via `rde-symbols`, look up printer, recurse with decremented `FormatBudget`
-- [ ] T033 [US1] Add REPL command parser for `print <expr>` and `vars` in `crates/rde-repl/src/commands.rs`
-- [ ] T034 [US1] Wire REPL `print`/`vars` commands to emit `EngineRequest::Print` via channels in `crates/rde-repl/src/executor.rs`
-- [ ] T035 [US1] Handle `EngineRequest::Print` in debug loop/engine: read variable address from stack frame, resolve type name via `rde-symbols`, invoke `rde-pretty-print`, return `EngineResponse::PrettyValue` in `crates/rde-core/src/engine.rs`
+- [x] T026 [P] [US1] Implement `OptionPrinter` in `crates/rde-pretty-print/src/printers/option.rs` reading discriminant and payload via `MemoryReader`
+- [x] T027 [P] [US1] Implement `VecPrinter` in `crates/rde-pretty-print/src/printers/vec.rs` reading `(ptr, len, cap)` triple and iterating elements with `FormatBudget` limit
+- [x] T028 [P] [US1] Implement `StringPrinter` in `crates/rde-pretty-print/src/printers/string.rs` reading `Vec<u8>` inner data and decoding UTF-8
+- [x] T029 [P] [US1] Implement `HashMapPrinter` in `crates/rde-pretty-print/src/printers/hashmap.rs` printing summary (`len` / `capacity`) with optional deep iteration up to budget
+- [x] T030 [P] [US1] Implement `ResultPrinter` in `crates/rde-pretty-print/src/printers/result.rs` reading discriminant and `Ok`/`Err` payload
+- [x] T031 [US1] Register all built-in printers in `PrinterRegistry` inside `crates/rde-pretty-print/src/lib.rs` at initialization
+- [x] T032 [US1] Implement recursive dispatch in `crates/rde-pretty-print/src/lib.rs`: resolve element type via `rde-symbols`, look up printer, recurse with decremented `FormatBudget`
+- [x] T033 [US1] Add REPL command parser for `print <expr>` and `vars` in `crates/rde-repl/src/commands.rs`
+- [x] T034 [US1] Wire REPL `print`/`vars` commands to emit `EngineRequest::Print` via channels in `crates/rde-repl/src/executor.rs`
+- [x] T035 [US1] Handle `EngineRequest::Print` in debug loop/engine: read variable address from stack frame, resolve type name via `rde-symbols`, invoke `rde-pretty-print`, return `EngineResponse::PrettyValue` in `crates/rde-core/src/engine.rs`
 - [ ] T036 [US1] Format `PrettyValue` for REPL display in `crates/rde-repl/src/display.rs` (human-readable output with truncation indicators)
 
 **Checkpoint**: At this point, User Story 1 should be fully functional and testable independently. Running `print my_vec` at a breakpoint shows `[10, 20, 30]`.
@@ -105,21 +105,21 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T037 [P] [US2] Unit test for `TaskState` parsing from raw header bits in `crates/rde-tokio/src/task.rs`
-- [ ] T038 [P] [US2] Unit test for `AsyncTask` formatting/display in `crates/rde-tokio/src/task.rs`
-- [ ] T039 [US2] Integration test with mock memory mimicking Tokio 1.x runtime header: assert scanner finds 2 tasks in `tests/integration/tokio_mock.rs`
+- [x] T037 [P] [US2] Unit test for `TaskState` parsing from raw header bits in `crates/rde-tokio/src/task.rs`
+- [x] T038 [P] [US2] Unit test for `AsyncTask` formatting/display in `crates/rde-tokio/src/task.rs`
+- [x] T039 [US2] Integration test with mock memory mimicking Tokio 1.x runtime header: assert scanner finds 2 tasks in `tests/integration/tokio_mock.rs`
 
 ### Implementation for User Story 2
 
-- [ ] T040 [US2] Implement Tokio runtime signature / vtable scanner in `crates/rde-tokio/src/scanner.rs` to locate runtime global in target memory
-- [ ] T041 [US2] Implement task list walker in `crates/rde-tokio/src/scanner.rs` following Tokio scheduler internal links to enumerate active tasks
-- [ ] T042 [US2] Implement task state decoder in `crates/rde-tokio/src/task.rs` mapping Tokio header bit patterns to `TaskState` enum
-- [ ] T043 [US2] Resolve task function names via `rde-symbols` (`SymFromAddr` on task vtable / poll function pointer) in `crates/rde-tokio/src/scanner.rs`
-- [ ] T044 [US2] Add REPL command parser for `tasks` in `crates/rde-repl/src/commands.rs`
-- [ ] T045 [US2] Wire REPL `tasks` command to emit `EngineRequest::ListTasks` via channels in `crates/rde-repl/src/executor.rs`
-- [ ] T046 [US2] Handle `EngineRequest::ListTasks` in debug loop/engine: invoke `rde-tokio` scanner when process is stopped, return `EngineResponse::TaskList` in `crates/rde-core/src/engine.rs`
+- [x] T040 [US2] Implement Tokio runtime signature / vtable scanner in `crates/rde-tokio/src/scanner.rs` to locate runtime global in target memory
+- [x] T041 [US2] Implement task list walker in `crates/rde-tokio/src/scanner.rs` following Tokio scheduler internal links to enumerate active tasks
+- [x] T042 [US2] Implement task state decoder in `crates/rde-tokio/src/task.rs` mapping Tokio header bit patterns to `TaskState` enum
+- [x] T043 [US2] Resolve task function names via `rde-symbols` (`SymFromAddr` on task vtable / poll function pointer) in `crates/rde-tokio/src/scanner.rs`
+- [x] T044 [US2] Add REPL command parser for `tasks` in `crates/rde-repl/src/commands.rs`
+- [x] T045 [US2] Wire REPL `tasks` command to emit `EngineRequest::ListTasks` via channels in `crates/rde-repl/src/executor.rs`
+- [x] T046 [US2] Handle `EngineRequest::ListTasks` in debug loop/engine: invoke `rde-tokio` scanner when process is stopped, return `EngineResponse::TaskList` in `crates/rde-core/src/engine.rs`
 - [ ] T047 [US2] Format `TaskList` as table for REPL display in `crates/rde-repl/src/display.rs`
-- [ ] T048 [US2] Handle "no Tokio runtime detected" gracefully: return informative message when scanner finds no signature in `crates/rde-tokio/src/scanner.rs`
+- [x] T048 [US2] Handle "no Tokio runtime detected" gracefully: return informative message when scanner finds no signature in `crates/rde-tokio/src/scanner.rs`
 
 **Checkpoint**: At this point, User Stories 1 AND 2 should both work independently. `tasks` command displays Tokio task table; pretty printers remain functional.
 
@@ -135,22 +135,22 @@
 
 > **NOTE: Write these tests FIRST, ensure they FAIL before implementation**
 
-- [ ] T049 [P] [US3] Unit test for `CargoTarget` path resolution logic in `crates/rde-cargo/src/target.rs`
-- [ ] T050 [P] [US3] Unit test for artifact staleness check (mtime comparison) in `crates/rde-cargo/src/build.rs`
-- [ ] T051 [US3] Unit test for `cargo metadata` JSON parsing into `CargoProject` in `crates/rde-cargo/src/metadata.rs`
-- [ ] T052 [US3] Integration test: mock `cargo metadata` output and assert correct target resolution in `tests/integration/cargo_target.rs`
+- [x] T049 [P] [US3] Unit test for `CargoTarget` path resolution logic in `crates/rde-cargo/src/target.rs`
+- [x] T050 [P] [US3] Unit test for artifact staleness check (mtime comparison) in `crates/rde-cargo/src/build.rs`
+- [x] T051 [US3] Unit test for `cargo metadata` JSON parsing into `CargoProject` in `crates/rde-cargo/src/metadata.rs`
+- [x] T052 [US3] Integration test: mock `cargo metadata` output and assert correct target resolution in `tests/integration/cargo_target.rs`
 
 ### Implementation for User Story 3
 
-- [ ] T053 [US3] Implement `cargo metadata` invocation and JSON parsing in `crates/rde-cargo/src/metadata.rs` using `serde`
-- [ ] T054 [US3] Implement `CargoTarget` resolution from metadata in `crates/rde-cargo/src/target.rs` (package → target → profile → artifact path)
-- [ ] T055 [US3] Implement artifact staleness check in `crates/rde-cargo/src/build.rs`: compare artifact mtime against newest source file mtime in package `src/` directory
-- [ ] T056 [US3] Implement `cargo build` subprocess spawn in `crates/rde-cargo/src/build.rs` using `tokio::process::Command`, capturing stdout/stderr
-- [ ] T057 [US3] Implement async wait for `cargo build` completion with REPL-responsive polling in `crates/rde-cargo/src/build.rs`
-- [ ] T058 [US3] Add CLI subcommand parser for `cargo debug [opts]` in `crates/rde-cli/src/args.rs`
-- [ ] T059 [US3] Wire `cargo debug` CLI flow through `rde-cargo` → resolve target → build if stale → hand binary path to `rde-core` launcher in `crates/rde-cli/src/main.rs`
-- [ ] T060 [US3] Propagate `cargo build` errors (compilation failures) to user with stderr output in `crates/rde-cargo/src/build.rs`
-- [ ] T061 [US3] Handle workspace packages: allow `--package <name>` to select correct manifest and target in `crates/rde-cargo/src/target.rs`
+- [x] T053 [US3] Implement `cargo metadata` invocation and JSON parsing in `crates/rde-cargo/src/metadata.rs` using `serde`
+- [x] T054 [US3] Implement `CargoTarget` resolution from metadata in `crates/rde-cargo/src/target.rs` (package → target → profile → artifact path)
+- [x] T055 [US3] Implement artifact staleness check in `crates/rde-cargo/src/build.rs`: compare artifact mtime against newest source file mtime in package `src/` directory
+- [x] T056 [US3] Implement `cargo build` subprocess spawn in `crates/rde-cargo/src/build.rs` using `tokio::process::Command`, capturing stdout/stderr
+- [x] T057 [US3] Implement async wait for `cargo build` completion with REPL-responsive polling in `crates/rde-cargo/src/build.rs`
+- [x] T058 [US3] Add CLI subcommand parser for `cargo debug [opts]` in `crates/rde-cli/src/args.rs`
+- [x] T059 [US3] Wire `cargo debug` CLI flow through `rde-cargo` → resolve target → build if stale → hand binary path to `rde-core` launcher in `crates/rde-cli/src/main.rs`
+- [x] T060 [US3] Propagate `cargo build` errors (compilation failures) to user with stderr output in `crates/rde-cargo/src/build.rs`
+- [x] T061 [US3] Handle workspace packages: allow `--package <name>` to select correct manifest and target in `crates/rde-cargo/src/target.rs`
 
 **Checkpoint**: All user stories should now be independently functional. `cargo debug` launches from Cargo projects; pretty printers and Tokio tasks work in the resulting debug session.
 

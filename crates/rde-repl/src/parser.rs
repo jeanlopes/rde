@@ -78,6 +78,20 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
         "info" if parts.get(1) == Some(&"threads") => Ok(EngineCommand::ListThreads),
         "modules" => Ok(EngineCommand::ListModules),
         "info" if parts.get(1) == Some(&"modules") => Ok(EngineCommand::ListModules),
+        "print" => {
+            if parts.len() < 2 {
+                return Err("usage: print <expression>".into());
+            }
+            Ok(EngineCommand::Print {
+                frame_id: 0,
+                expression: parts[1..].join(" "),
+            })
+        }
+        "vars" => Ok(EngineCommand::Print {
+            frame_id: 0,
+            expression: "*".to_string(),
+        }),
+        "tasks" => Ok(EngineCommand::ListTasks),
         "thread" => {
             if parts.len() < 2 {
                 return Err("usage: thread <id>".into());

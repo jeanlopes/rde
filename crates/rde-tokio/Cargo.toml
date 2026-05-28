@@ -1,0 +1,17 @@
+[package]
+name = "rde-tokio"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+rde-core = { workspace = true }
+rde-win32 = { workspace = true }
+rde-symbols = { workspace = true }
+tracing = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+mockall = { workspace = true }

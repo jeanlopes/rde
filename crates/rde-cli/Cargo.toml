@@ -17,6 +17,7 @@ rde-symbols = { workspace = true }
 rde-breakpoint = { workspace = true }
 rde-repl = { workspace = true }
 rde-tui = { workspace = true }
+rde-cargo = { workspace = true }
 clap = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }

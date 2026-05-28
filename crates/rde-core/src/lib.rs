@@ -3,10 +3,14 @@
 use std::path::PathBuf;
 
 pub mod breakpoint;
+pub mod cargo;
 pub mod channel;
 pub mod disasm;
 pub mod engine;
 pub mod events;
+pub mod memory;
+pub mod task;
+pub mod value;
 
 pub use engine::DebugEngine;
 pub use events::{BreakpointKind, DebugLoopCommand, EngineCommand, EngineEvent};

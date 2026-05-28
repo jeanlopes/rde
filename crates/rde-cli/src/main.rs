@@ -1,6 +1,6 @@
 //! RDE CLI — Entry point for the Rust Debugger Engine.
 
-use clap::Parser;
+use clap::{Parser, Subcommand};
 use rde_core::DebugEngine;
 use rde_repl;
 use rde_win32::WindowsBackend;
@@ -11,6 +11,10 @@ use tracing_subscriber::FmtSubscriber;
 #[command(name = "rde-cli")]
 #[command(about = "Rust Debugger Engine — Native Windows debugger")]
 struct Args {
+    /// Subcommand (e.g., cargo debug)
+    #[command(subcommand)]
+    command: Option<Commands>,
+
     /// Target executable to debug (optional, can be specified via REPL)
     target: Option<String>,
 
@@ -23,12 +27,39 @@ struct Args {
     tui: bool,
 }
 
+#[derive(Subcommand, Debug)]
+enum Commands {
+    /// Debug a Cargo project
+    Cargo {
+        #[command(subcommand)]
+        command: CargoCommands,
+    },
+}
+
+#[derive(Subcommand, Debug)]
+enum CargoCommands {
+    /// Launch debug session from a Cargo project
+    Debug {
+        /// Package to build (for workspaces)
+        #[arg(long)]
+        package: Option<String>,
+        /// Target to build
+        #[arg(long)]
+        target: Option<String>,
+        /// Build profile
+        #[arg(long, default_value = "dev")]
+        profile: String,
+        /// Features to enable
+        #[arg(long)]
+        features: Vec<String>,
+    },
+}
+
 #[tokio::main]
 async fn main() {
     let args = Args::parse();
 
     if args.tui {
-        // In TUI mode, redirect logs to a file to avoid polluting the terminal.
         let log_file = std::fs::OpenOptions::new()
             .create(true)
             .append(true)
@@ -51,39 +82,51 @@ async fn main() {
     let backend = WindowsBackend::new();
     let (mut engine, command_tx, event_rx) = DebugEngine::new(backend);
 
-    // Spawn engine in background
     let engine_handle = tokio::spawn(async move {
         if let Err(e) = engine.run().await {
             eprintln!("Engine error: {e}");
         }
     });
 
-    // If target provided on command line, auto-launch
-    if let Some(target) = args.target {
-        let path = std::path::PathBuf::from(&target);
-        let path = if path.exists() {
-            std::fs::canonicalize(&path).unwrap_or(path)
-        } else {
-            // Try Cargo example path heuristic
-            let cargo_example = std::path::PathBuf::from(format!("target/debug/examples/{}.{}",
-                path.file_stem().and_then(|s| s.to_str()).unwrap_or(&target),
-                path.extension().and_then(|s| s.to_str()).unwrap_or("exe")
-            ));
-            if cargo_example.exists() {
-                std::fs::canonicalize(&cargo_example).unwrap_or(cargo_example)
+    match args.command {
+        Some(Commands::Cargo { command: CargoCommands::Debug { package, target, profile, features } }) => {
+            let manifest_path = std::env::current_dir()
+                .unwrap_or_default()
+                .join("Cargo.toml");
+            let _ = command_tx.send(rde_core::EngineCommand::CargoLaunch {
+                manifest_path,
+                package,
+                target,
+                profile,
+                features,
+            });
+        }
+        None if args.target.is_some() => {
+            let target = args.target.unwrap();
+            let path = std::path::PathBuf::from(&target);
+            let path = if path.exists() {
+                std::fs::canonicalize(&path).unwrap_or(path)
             } else {
-                eprintln!("Erro: executável não encontrado: {}", path.display());
-                eprintln!("Dica: compile com 'cargo build --example <nome>' e use o caminho completo.");
-                std::process::exit(1);
-            }
-        };
-        let _ = command_tx.send(rde_core::EngineCommand::Launch {
-            path,
-            args: args.target_args,
-        });
+                let cargo_example = std::path::PathBuf::from(format!("target/debug/examples/{}.{}",
+                    path.file_stem().and_then(|s| s.to_str()).unwrap_or(&target),
+                    path.extension().and_then(|s| s.to_str()).unwrap_or("exe")
+                ));
+                if cargo_example.exists() {
+                    std::fs::canonicalize(&cargo_example).unwrap_or(cargo_example)
+                } else {
+                    eprintln!("Erro: executável não encontrado: {}", path.display());
+                    eprintln!("Dica: compile com 'cargo build --example <nome>' e use o caminho completo.");
+                    std::process::exit(1);
+                }
+            };
+            let _ = command_tx.send(rde_core::EngineCommand::Launch {
+                path,
+                args: args.target_args,
+            });
+        }
+        _ => {}
     }
 
-    // Run TUI or REPL
     if args.tui {
         if let Err(e) = rde_tui::run(event_rx, command_tx).await {
             eprintln!("TUI error: {e}");
@@ -92,7 +135,6 @@ async fn main() {
         rde_repl::run(event_rx, command_tx).await;
     }
 
-    // Wait for engine to finish
     let _ = engine_handle.await;
     info!("RDE CLI exiting");
 }
