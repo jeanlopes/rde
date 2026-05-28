@@ -13,6 +13,7 @@ rustc-demangle = { workspace = true }
 capstone = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
+windows = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }

@@ -5,6 +5,8 @@ use rde_core::{DebugError, StackFrame, SymbolInfo};
 pub mod dbghelp;
 pub mod demangler;
 
+pub use dbghelp::DbgHelpSymbolEngine;
+
 /// Trait for symbol resolution backends.
 pub trait SymbolEngine: Send + Sync {
     /// Initialize symbol handling for the given process.

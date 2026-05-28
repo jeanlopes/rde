@@ -5,6 +5,7 @@
 //! MUST include a safety proof comment per the RDE Constitution (Principle VI).
 
 use rde_core::{DebugBackend, DebugError, ProcessHandle, RegisterContext, ThreadId};
+use rde_core::events::DebugLoopCommand;
 use std::path::Path;
 
 pub mod debug_loop;
@@ -75,8 +76,8 @@ impl DebugBackend for WindowsBackend {
         &self,
         handle: &ProcessHandle,
         event_tx: tokio::sync::mpsc::UnboundedSender<rde_core::EngineEvent>,
-        _command_rx: tokio::sync::mpsc::UnboundedReceiver<rde_core::EngineCommand>,
+        command_rx: tokio::sync::mpsc::UnboundedReceiver<DebugLoopCommand>,
     ) {
-        let _ = debug_loop::start_debug_loop(handle, event_tx, _command_rx);
+        let _ = debug_loop::start_debug_loop(handle, event_tx, command_rx);
     }
 }

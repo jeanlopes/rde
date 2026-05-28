@@ -41,8 +41,10 @@ async fn main() {
 
     // If target provided on command line, auto-launch
     if let Some(target) = args.target {
+        let path = std::path::PathBuf::from(&target);
+        let path = std::fs::canonicalize(&path).unwrap_or(path);
         let _ = command_tx.send(rde_core::EngineCommand::Launch {
-            path: std::path::PathBuf::from(target),
+            path,
             args: args.target_args,
         });
     }

@@ -8,7 +8,7 @@ pub mod engine;
 pub mod events;
 
 pub use engine::DebugEngine;
-pub use events::{EngineCommand, EngineEvent};
+pub use events::{DebugLoopCommand, EngineCommand, EngineEvent};
 
 /// Unique identifier for a debug session.
 pub type SessionId = uuid::Uuid;
@@ -178,7 +178,7 @@ pub trait DebugBackend: Send + Sync {
         &self,
         _handle: &ProcessHandle,
         _event_tx: tokio::sync::mpsc::UnboundedSender<EngineEvent>,
-        _command_rx: tokio::sync::mpsc::UnboundedReceiver<EngineCommand>,
+        _command_rx: tokio::sync::mpsc::UnboundedReceiver<crate::events::DebugLoopCommand>,
     ) {
     }
 }

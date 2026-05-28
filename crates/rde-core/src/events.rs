@@ -41,6 +41,13 @@ pub enum EngineCommand {
     Quit,
 }
 
+/// Commands sent from the engine to the debug loop thread.
+#[derive(Debug, Clone)]
+pub enum DebugLoopCommand {
+    Continue,
+    ContinueException,
+}
+
 /// Events sent from the debug engine to the REPL/UI.
 #[derive(Debug, Clone)]
 pub enum EngineEvent {

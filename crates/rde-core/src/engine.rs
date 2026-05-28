@@ -1,6 +1,7 @@
 //! Debug engine orchestrator.
 
 use crate::channel::engine_channels;
+use crate::events::DebugLoopCommand;
 use crate::{DebugBackend, DebugError, EngineCommand, EngineEvent, ProcessHandle};
 use crate::breakpoint::BreakpointManager;
 use tokio::sync::mpsc;
@@ -13,7 +14,10 @@ pub struct DebugEngine<B: DebugBackend> {
     breakpoints: BreakpointManager,
     command_rx: mpsc::UnboundedReceiver<EngineCommand>,
     event_tx: mpsc::UnboundedSender<EngineEvent>,
-    debug_command_tx: Option<mpsc::UnboundedSender<EngineCommand>>,
+    debug_event_rx: mpsc::UnboundedReceiver<EngineEvent>,
+    debug_event_tx: mpsc::UnboundedSender<EngineEvent>,
+    debug_loop_tx: Option<mpsc::UnboundedSender<DebugLoopCommand>>,
+    stepping_over_breakpoint: Option<u64>,
 }
 
 struct Session {
@@ -24,13 +28,17 @@ impl<B: DebugBackend> DebugEngine<B> {
     /// Create a new engine and its communication channels.
     pub fn new(backend: B) -> (Self, mpsc::UnboundedSender<EngineCommand>, mpsc::UnboundedReceiver<EngineEvent>) {
         let (command_tx, event_rx, command_rx, event_tx) = engine_channels();
+        let (debug_event_tx, debug_event_rx) = mpsc::unbounded_channel();
         let engine = Self {
             backend,
             session: None,
             breakpoints: BreakpointManager::new(),
             command_rx,
             event_tx,
-            debug_command_tx: Some(command_tx.clone()),
+            debug_event_rx,
+            debug_event_tx,
+            debug_loop_tx: None,
+            stepping_over_breakpoint: None,
         };
         (engine, command_tx, event_rx)
     }
@@ -39,14 +47,26 @@ impl<B: DebugBackend> DebugEngine<B> {
     #[instrument(skip(self))]
     pub async fn run(&mut self) -> Result<(), DebugError> {
         info!("DebugEngine started");
-        while let Some(cmd) = self.command_rx.recv().await {
-            if let EngineCommand::Quit = cmd {
-                break;
-            }
-            if let Err(e) = self.handle_command(cmd).await {
-                let _ = self.event_tx.send(EngineEvent::Error {
-                    message: e.to_string(),
-                });
+        loop {
+            tokio::select! {
+                Some(cmd) = self.command_rx.recv() => {
+                    if let EngineCommand::Quit = cmd {
+                        break;
+                    }
+                    if let Err(e) = self.handle_command(cmd).await {
+                        let _ = self.event_tx.send(EngineEvent::Error {
+                            message: e.to_string(),
+                        });
+                    }
+                }
+                Some(evt) = self.debug_event_rx.recv() => {
+                    if let Err(e) = self.handle_event(evt).await {
+                        let _ = self.event_tx.send(EngineEvent::Error {
+                            message: e.to_string(),
+                        });
+                    }
+                }
+                else => break,
             }
         }
         info!("DebugEngine shutting down");
@@ -70,13 +90,18 @@ impl<B: DebugBackend> DebugEngine<B> {
                 let _ = self.event_tx.send(EngineEvent::ProcessAttached { pid });
             }
             EngineCommand::Continue => {
-                let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
-                self.backend.continue_execution(&session.handle).await?;
+                // Forward continue to the debug loop
+                if let Some(tx) = &self.debug_loop_tx {
+                    let _ = tx.send(DebugLoopCommand::Continue);
+                }
             }
             EngineCommand::StepInto => {
                 let session = self.session.as_ref().ok_or(DebugError::SessionNotActive)?;
                 // TODO: get selected thread
                 self.backend.single_step(&session.handle, 0).await?;
+                if let Some(tx) = &self.debug_loop_tx {
+                    let _ = tx.send(DebugLoopCommand::Continue);
+                }
             }
             EngineCommand::SetBreakpoint { address, .. } => {
                 if let Some(addr) = address {
@@ -135,13 +160,146 @@ impl<B: DebugBackend> DebugEngine<B> {
         Ok(())
     }
 
-    fn start_debug_loop(&mut self, handle: &ProcessHandle) {
-        if let Some(_tx) = self.debug_command_tx.take() {
-            let (debug_tx, debug_rx) = mpsc::unbounded_channel();
-            // Replace the old sender with the new one so future commands also go to debug loop
-            self.debug_command_tx = Some(debug_tx.clone());
-            self.backend.on_session_started(handle, self.event_tx.clone(), debug_rx);
+    #[instrument(skip(self))]
+    async fn handle_event(&mut self, evt: EngineEvent) -> Result<(), DebugError> {
+        match evt {
+            EngineEvent::BreakpointHit { id, address, thread_id } => {
+                // Resolve breakpoint ID from address if not provided by debug loop
+                let id = if id == 0 {
+                    self.breakpoints.find_by_address(address).map(|bp| bp.id).unwrap_or(0)
+                } else {
+                    id
+                };
+                info!("Breakpoint {id} hit at 0x{address:x} on thread {thread_id}");
+
+                if id == 0 {
+                    // Unknown breakpoint (e.g., system initial breakpoint) — just report and continue
+                    let _ = self.event_tx.send(EngineEvent::BreakpointHit { id: 0, address, thread_id });
+                    if let Some(tx) = &self.debug_loop_tx {
+                        let _ = tx.send(DebugLoopCommand::Continue);
+                    }
+                    return Ok(());
+                }
+
+                if let Some(session) = &self.session {
+                    // 1. Restore original byte
+                    if let Some(bp) = self.breakpoints.get(id) {
+                        let original = bp.original_byte;
+                        if let Err(e) = self.backend.write_memory(&session.handle, address, &[original]).await {
+                            let _ = self.event_tx.send(EngineEvent::Error {
+                                message: format!("Failed to restore breakpoint byte: {e}"),
+                            });
+                        }
+                    }
+
+                    // 2. Decrement RIP so it points to the original instruction
+                    let mut ctx = match self.backend.get_registers(&session.handle, thread_id).await {
+                        Ok(c) => c,
+                        Err(e) => {
+                            let _ = self.event_tx.send(EngineEvent::Error {
+                                message: format!("Failed to get registers: {e}"),
+                            });
+                            let _ = self.event_tx.send(EngineEvent::BreakpointHit { id, address, thread_id });
+                            return Ok(());
+                        }
+                    };
+                    ctx.rip = address;
+
+                    // 3. Set Trap Flag for single step
+                    ctx.rflags |= 0x100;
+                    if let Err(e) = self.backend.set_registers(&session.handle, thread_id, &ctx).await {
+                        let _ = self.event_tx.send(EngineEvent::Error {
+                            message: format!("Failed to set registers: {e}"),
+                        });
+                    }
+
+                    // 4. Remember we are stepping over this breakpoint
+                    self.stepping_over_breakpoint = Some(address);
+                }
+
+                // 5. Forward event to REPL
+                let _ = self.event_tx.send(EngineEvent::BreakpointHit { id, address, thread_id });
+
+                // 6. Tell debug loop to continue (will single-step over restored instruction)
+                if let Some(tx) = &self.debug_loop_tx {
+                    let _ = tx.send(DebugLoopCommand::Continue);
+                }
+            }
+            EngineEvent::SingleStep { address, thread_id } => {
+                info!("Single step at 0x{address:x} on thread {thread_id}");
+
+                if let Some(session) = &self.session {
+                    // If we were stepping over a breakpoint, reinstall it
+                    if let Some(bp_addr) = self.stepping_over_breakpoint.take() {
+                        if let Err(e) = self.backend.write_memory(&session.handle, bp_addr, &[0xCC]).await {
+                            let _ = self.event_tx.send(EngineEvent::Error {
+                                message: format!("Failed to reinstall breakpoint: {e}"),
+                            });
+                        }
+                    }
+
+                    // Clear trap flag
+                    let mut ctx = match self.backend.get_registers(&session.handle, thread_id).await {
+                        Ok(c) => c,
+                        Err(_) => {
+                            let _ = self.event_tx.send(EngineEvent::SingleStep { address, thread_id });
+                            if let Some(tx) = &self.debug_loop_tx {
+                                let _ = tx.send(DebugLoopCommand::Continue);
+                            }
+                            return Ok(());
+                        }
+                    };
+                    ctx.rflags &= !0x100;
+                    let _ = self.backend.set_registers(&session.handle, thread_id, &ctx).await;
+
+                    // Continue automatically after single step
+                    if let Some(tx) = &self.debug_loop_tx {
+                        let _ = tx.send(DebugLoopCommand::Continue);
+                    }
+                }
+
+                let _ = self.event_tx.send(EngineEvent::SingleStep { address, thread_id });
+            }
+            EngineEvent::Exception { code, address } => {
+                info!("Exception 0x{code:08X} at 0x{address:x}");
+                let _ = self.event_tx.send(EngineEvent::Exception { code, address });
+                // For unknown exceptions, tell debug loop to report as not handled
+                if let Some(tx) = &self.debug_loop_tx {
+                    let _ = tx.send(DebugLoopCommand::ContinueException);
+                }
+            }
+            EngineEvent::ProcessExited { code } => {
+                info!("Process exited with code {code}");
+                self.session = None;
+                self.debug_loop_tx = None;
+                let _ = self.event_tx.send(EngineEvent::ProcessExited { code });
+            }
+            EngineEvent::ProcessLaunched { pid } => {
+                info!("Process launched: PID {pid}");
+                let _ = self.event_tx.send(EngineEvent::ProcessLaunched { pid });
+                // Auto-continue after initial process creation
+                if let Some(tx) = &self.debug_loop_tx {
+                    let _ = tx.send(DebugLoopCommand::Continue);
+                }
+            }
+            EngineEvent::ProcessAttached { pid } => {
+                info!("Process attached: PID {pid}");
+                let _ = self.event_tx.send(EngineEvent::ProcessAttached { pid });
+                if let Some(tx) = &self.debug_loop_tx {
+                    let _ = tx.send(DebugLoopCommand::Continue);
+                }
+            }
+            _ => {
+                let _ = self.event_tx.send(evt);
+            }
         }
+        Ok(())
+    }
+
+    fn start_debug_loop(&mut self, handle: &ProcessHandle) {
+        let (debug_loop_tx, debug_loop_rx) = mpsc::unbounded_channel();
+        self.debug_loop_tx = Some(debug_loop_tx);
+        self.backend.on_session_started(handle, self.debug_event_tx.clone(), debug_loop_rx);
     }
 
     async fn set_breakpoint(&mut self, address: u64) -> Result<(), DebugError> {
@@ -157,9 +315,6 @@ impl<B: DebugBackend> DebugEngine<B> {
             });
         }
         original[0] = read[0];
-
-        // Suspend all threads before patching (simplified: main thread only for MVP)
-        // TODO: enumerate and suspend all threads
 
         // Write INT3 (0xCC)
         self.backend.write_memory(&session.handle, address, &[0xCC]).await?;
