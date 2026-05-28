@@ -7,9 +7,9 @@ project.
 
 ## Active Plan
 
-- **Feature**: 001-debugger-engine
-- **Spec**: [specs/001-debugger-engine/spec.md](specs/001-debugger-engine/spec.md)
-- **Plan**: [specs/001-debugger-engine/plan.md](specs/001-debugger-engine/plan.md)
+- **Feature**: 002-thread-module-tracking
+- **Spec**: [specs/002-thread-module-tracking/spec.md](specs/002-thread-module-tracking/spec.md)
+- **Plan**: [specs/002-thread-module-tracking/plan.md](specs/002-thread-module-tracking/plan.md)
 
 ## Constitution
 
