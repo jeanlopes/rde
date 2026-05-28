@@ -122,3 +122,13 @@ incluir uma auto-avaliação de conformidade.
 ## Licença
 
 MIT ou Apache-2.0 (a definir)
+
+
+
+#	Spec	Fases do Plano	Escopo	User Stories Principais
+001	debugger-engine	0–5	MVP Core — Debug loop, breakpoints runtime, REPL, registradores, memória, stack trace, símbolos	Launch/attach, REPL responsivo, inspeção de estado  
+002	thread-module-tracking	6	Rastreamento de threads e módulos (DLLs) dinamicamente	Listar/trocar threads, listar módulos carregados  
+003	disassembly-view	7	Visualização de código assembly com destaque de breakpoints	Disassembly em endereços específicos, sincronia com RIP  
+004	tui-interface	8	Interface terminal gráfica (ratatui) com painéis	Layout multi-pane (source/asm, regs, stack, breakpoints, REPL)  
+005	rust-debug-extensions	9	Diferenciais Rust: pretty printers, async tasks, cargo integration	Visualizar Option<T>, Vec<T>, tasks tokio, cargo debug  
+
