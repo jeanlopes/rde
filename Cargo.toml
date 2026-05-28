@@ -1,0 +1,46 @@
+[workspace]
+resolver = "2"
+members = [
+    "crates/rde-core",
+    "crates/rde-win32",
+    "crates/rde-symbols",
+    "crates/rde-breakpoint",
+    "crates/rde-repl",
+    "crates/rde-cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2021"
+authors = ["RDE Contributors"]
+license = "MIT OR Apache-2.0"
+rust-version = "1.78"
+
+[workspace.dependencies]
+async-trait = "0.1"
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "io-std", "io-util"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+thiserror = "1.0"
+mockall = "0.12"
+insta = "1.38"
+windows = { version = "0.56", features = [
+    "Win32_System_Diagnostics_Debug",
+    "Win32_System_Threading",
+    "Win32_System_Memory",
+    "Win32_System_Kernel",
+    "Win32_Foundation",
+    "Win32_Security",
+] }
+libloading = "0.8"
+capstone = "0.12"
+rustc-demangle = "0.1"
+clap = { version = "4.5", features = ["derive"] }
+
+rde-core = { path = "crates/rde-core" }
+rde-win32 = { path = "crates/rde-win32" }
+rde-symbols = { path = "crates/rde-symbols" }
+rde-breakpoint = { path = "crates/rde-breakpoint" }
+rde-repl = { path = "crates/rde-repl" }
