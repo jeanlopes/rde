@@ -7,10 +7,9 @@ project.
 
 ## Active Plan
 
-- **Feature**: 004-tui-interface
-- **Spec**: [specs/004-tui-interface/spec.md](specs/004-tui-interface/spec.md)
-- **Plan**: [specs/004-tui-interface/plan.md](specs/004-tui-interface/plan.md)
-- **Plan**: [specs/002-thread-module-tracking/plan.md](specs/002-thread-module-tracking/plan.md)
+- **Feature**: 005-rust-debug-extensions
+- **Spec**: [specs/005-rust-debug-extensions/spec.md](specs/005-rust-debug-extensions/spec.md)
+- **Plan**: [specs/005-rust-debug-extensions/plan.md](specs/005-rust-debug-extensions/plan.md)
 
 ## Constitution
 
@@ -27,12 +26,17 @@ Key non-negotiables:
 
 ```
 crates/
-  rde-core/         — Traits, types, engine state machine, channels
-  rde-win32/        — Win32 API backend (unsafe zone)
-  rde-symbols/      — DbgHelp integration, demangling
-  rde-breakpoint/   — Breakpoint manager
-  rde-repl/         — Command parser, REPL loop
-  rde-cli/          — Binary entry point
+  rde-core/           — Traits, types, engine state machine, channels
+  rde-win32/          — Win32 API backend (unsafe zone)
+  rde-symbols/        — DbgHelp integration, demangling
+  rde-breakpoint/     — Breakpoint manager
+  rde-repl/           — Command parser, REPL loop
+  rde-tui/            — TUI interface (ratatui)
+  rde-cli/            — Binary entry point
+  rde-pretty-print/   — Rust value pretty printers (Option, Vec, String, etc.)
+  rde-tokio/          — Tokio async task inspection
+  rde-cargo/          — Cargo project integration, target resolution, build trigger
+  rde-orchestrator/   — High-level coordination between engine and extension crates
 ```
 
 ## Commands

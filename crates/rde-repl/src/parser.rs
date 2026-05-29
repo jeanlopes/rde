@@ -78,6 +78,58 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
         "info" if parts.get(1) == Some(&"threads") => Ok(EngineCommand::ListThreads),
         "modules" => Ok(EngineCommand::ListModules),
         "info" if parts.get(1) == Some(&"modules") => Ok(EngineCommand::ListModules),
+        "print" => {
+            if parts.len() < 2 {
+                return Err("usage: print [--raw] [--limit N] [--depth N] <expression>".into());
+            }
+            let mut idx = 1;
+            let mut raw = false;
+            let mut limit = None;
+            let mut depth = None;
+            while idx < parts.len() {
+                match parts[idx] {
+                    "--raw" => raw = true,
+                    "--limit" => {
+                        idx += 1;
+                        if idx >= parts.len() {
+                            return Err("usage: print [--limit N] <expression>".into());
+                        }
+                        limit = Some(parts[idx].parse::<u32>().map_err(|_| "invalid limit")?);
+                    }
+                    "--depth" => {
+                        idx += 1;
+                        if idx >= parts.len() {
+                            return Err("usage: print [--depth N] <expression>".into());
+                        }
+                        depth = Some(parts[idx].parse::<u32>().map_err(|_| "invalid depth")?);
+                    }
+                    _ => break,
+                }
+                idx += 1;
+            }
+            if idx >= parts.len() {
+                return Err("usage: print <expression>".into());
+            }
+            let mut expr = parts[idx..].join(" ");
+            if raw {
+                expr = format!("--raw {}", expr);
+            }
+            if let Some(l) = limit {
+                expr = format!("--limit {} {}", l, expr);
+            }
+            if let Some(d) = depth {
+                expr = format!("--depth {} {}", d, expr);
+            }
+            Ok(EngineCommand::Print {
+                frame_id: 0,
+                expression: expr,
+            })
+        }
+        "vars" => Ok(EngineCommand::Print {
+            frame_id: 0,
+            expression: "*".to_string(),
+        }),
+        "tasks" => Ok(EngineCommand::ListTasks),
         "thread" => {
             if parts.len() < 2 {
                 return Err("usage: thread <id>".into());

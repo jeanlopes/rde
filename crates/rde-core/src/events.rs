@@ -38,6 +38,18 @@ pub enum EngineCommand {
     },
     ListThreads,
     ListModules,
+    Print {
+        frame_id: u64,
+        expression: String,
+    },
+    ListTasks,
+    CargoLaunch {
+        manifest_path: std::path::PathBuf,
+        package: Option<String>,
+        target: Option<String>,
+        profile: String,
+        features: Vec<String>,
+    },
     SelectThread {
         id: ThreadId,
     },
@@ -142,5 +154,22 @@ pub enum EngineEvent {
     /// Structured stack trace response.
     StackTrace {
         frames: Vec<crate::StackFrame>,
+    },
+    /// Pretty-printed value response.
+    PrettyValue {
+        value: crate::value::PrettyValue,
+    },
+    /// Tokio async task list response.
+    TaskList {
+        tasks: Vec<crate::task::AsyncTask>,
+    },
+    /// Cargo launch result.
+    CargoLaunchResult {
+        result: Result<u32, String>,
+    },
+    /// Raw memory bytes response (for pretty-print integration).
+    MemoryBytes {
+        address: u64,
+        bytes: Vec<u8>,
     },
 }

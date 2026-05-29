@@ -8,6 +8,10 @@ members = [
     "crates/rde-repl",
     "crates/rde-tui",
     "crates/rde-cli",
+    "crates/rde-pretty-print",
+    "crates/rde-tokio",
+    "crates/rde-cargo",
+    "crates/rde-orchestrator",
 ]
 
 [workspace.package]
@@ -19,7 +23,7 @@ rust-version = "1.78"
 
 [workspace.dependencies]
 async-trait = "0.1"
-tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "io-std", "io-util"] }
+tokio = { version = "1.37", features = ["rt-multi-thread", "macros", "sync", "io-std", "io-util", "process"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -48,3 +52,7 @@ rde-symbols = { path = "crates/rde-symbols" }
 rde-breakpoint = { path = "crates/rde-breakpoint" }
 rde-repl = { path = "crates/rde-repl" }
 rde-tui = { path = "crates/rde-tui" }
+rde-pretty-print = { path = "crates/rde-pretty-print" }
+rde-tokio = { path = "crates/rde-tokio" }
+rde-cargo = { path = "crates/rde-cargo" }
+rde-orchestrator = { path = "crates/rde-orchestrator" }

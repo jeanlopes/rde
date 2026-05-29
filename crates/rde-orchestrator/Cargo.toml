@@ -1,25 +1,18 @@
 [package]
-name = "rde-cli"
+name = "rde-orchestrator"
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
 rust-version.workspace = true
 
-[[bin]]
-name = "rde-cli"
-path = "src/main.rs"
-
 [dependencies]
 rde-core = { workspace = true }
 rde-win32 = { workspace = true }
 rde-symbols = { workspace = true }
-rde-breakpoint = { workspace = true }
-rde-repl = { workspace = true }
-rde-tui = { workspace = true }
+rde-pretty-print = { workspace = true }
+rde-tokio = { workspace = true }
 rde-cargo = { workspace = true }
-rde-orchestrator = { workspace = true }
-clap = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
