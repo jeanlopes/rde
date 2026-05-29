@@ -7,9 +7,9 @@ project.
 
 ## Active Plan
 
-- **Feature**: 005-rust-debug-extensions
-- **Spec**: [specs/005-rust-debug-extensions/spec.md](specs/005-rust-debug-extensions/spec.md)
-- **Plan**: [specs/005-rust-debug-extensions/plan.md](specs/005-rust-debug-extensions/plan.md)
+- **Feature**: 006-big-test-plan
+- **Spec**: [specs/006-big-test-plan/spec.md](specs/006-big-test-plan/spec.md)
+- **Plan**: [specs/006-big-test-plan/plan.md](specs/006-big-test-plan/plan.md)
 
 ## Constitution
 

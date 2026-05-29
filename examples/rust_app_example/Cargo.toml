@@ -1,0 +1,14 @@
+[package]
+name = "rust_app_example"
+version = "0.1.0"
+edition = "2021"
+authors = ["RDE Contributors"]
+license = "MIT OR Apache-2.0"
+rust-version = "1.78"
+
+[dependencies]
+rand = { version = "0.8", features = ["small_rng"] }
+
+[[bin]]
+name = "rust_app_example"
+path = "src/main.rs"
