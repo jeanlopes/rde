@@ -5,7 +5,7 @@ use libloading::{Library, Symbol};
 use rde_core::{DebugError, StackFrame, SymbolInfo};
 use std::ffi::{c_void, CStr};
 use std::os::windows::ffi::OsStrExt;
-use tracing::{info, warn};
+use tracing::info;
 
 // ---------------------------------------------------------------------------
 // FFI types

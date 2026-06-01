@@ -49,7 +49,7 @@ pub fn launch(path: &Path, args: &[String]) -> Result<ProcessHandle, DebugError>
     };
     let nul_handle = match nul_handle {
         Ok(h) => h,
-        Err(e) => {
+        Err(_) => {
             return Err(DebugError::Win32Error {
                 code: unsafe { windows::Win32::Foundation::GetLastError().0 },
                 message: "Failed to open NUL device for debuggee redirection".into(),
