@@ -1,5 +1,7 @@
 # RDE — Rust Debugger Engine
 
+Rust Observability Engine
+
 Debugger nativo Windows escrito em Rust, do zero, sem LLDB.
 
 ## O que é
@@ -132,3 +134,17 @@ MIT ou Apache-2.0 (a definir)
 004	tui-interface	8	Interface terminal gráfica (ratatui) com painéis	Layout multi-pane (source/asm, regs, stack, breakpoints, REPL)  
 005	rust-debug-extensions	9	Diferenciais Rust: pretty printers, async tasks, cargo integration	Visualizar Option<T>, Vec<T>, tasks tokio, cargo debug  
 
+# Compilar os binários primeiro
+cargo build -p rde-cli -p rust_app_example
+
+# Rodar todos os testes ativos
+cargo test --test big_test_plan
+
+# Com output visível
+cargo test --test big_test_plan -- --nocapture
+
+# Um TC específico
+cargo test --test big_test_plan tc_001_launch_standalone
+
+# Listar todos sem rodar
+cargo test --test big_test_plan -- --list

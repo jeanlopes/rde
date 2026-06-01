@@ -1,3 +1,15 @@
+[package]
+name = "rde-workspace-tests"
+version.workspace = true
+edition.workspace = true
+authors.workspace = true
+license.workspace = true
+rust-version.workspace = true
+
+[[test]]
+name = "big_test_plan"
+path = "tests/big_test_plan.rs"
+
 [workspace]
 resolver = "2"
 members = [

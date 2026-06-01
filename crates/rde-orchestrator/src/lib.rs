@@ -1,7 +1,7 @@
 //! RDE Orchestrator — High-level coordination between engine and extension crates.
 
 use rde_core::{DebugBackend, DebugError, ProcessHandle};
-use rde_pretty_print::{FormatBudget, MemoryReader, PrettyValue, PrinterRegistry};
+use rde_pretty_print::{FormatBudget, MemoryReader, PrettyValue};
 use rde_tokio::scanner::TokioScanner;
 use rde_tokio::task::AsyncTask;
 

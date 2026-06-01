@@ -11,6 +11,7 @@ use tracing::{info, instrument};
 
 /// Snapshot of engine state for structured transition logging.
 #[derive(Debug, Clone)]
+#[allow(dead_code)]
 struct EngineStateSnapshot {
     has_session: bool,
     breakpoint_count: usize,
