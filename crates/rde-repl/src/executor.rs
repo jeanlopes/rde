@@ -20,8 +20,12 @@ pub fn execute(cmd: &EngineCommand) -> String {
         }
         EngineCommand::DeleteBreakpoint { id } => format!("Deleting breakpoint {id}"),
         EngineCommand::ReadRegisters { .. } => "Reading registers...".into(),
-        EngineCommand::ReadMemory { address, size } => {
-            format!("Reading {size} bytes from 0x{address:x}")
+        EngineCommand::ReadMemory { address, size, expression } => {
+            if let Some(expr) = expression {
+                format!("Reading {size} bytes from {expr}")
+            } else {
+                format!("Reading {size} bytes from 0x{address:x}")
+            }
         }
         EngineCommand::WriteMemory { address, bytes } => {
             format!("Writing {} bytes to 0x{address:x}", bytes.len())
@@ -54,6 +58,15 @@ pub fn execute(cmd: &EngineCommand) -> String {
         EngineCommand::ListTasks => "Listing Tokio tasks...".into(),
         EngineCommand::CargoLaunch { manifest_path, .. } => {
             format!("Launching Cargo project: {}", manifest_path.display())
+        }
+        EngineCommand::StepOver => "Avançando uma instrução (next)...".into(),
+        EngineCommand::StepOut => "Executando até o retorno (finish)...".into(),
+        EngineCommand::SetPrintConfig { limit, depth, pretty } => {
+            let mut parts = Vec::new();
+            if let Some(l) = limit { parts.push(format!("limit={l}")); }
+            if let Some(d) = depth { parts.push(format!("depth={d}")); }
+            if let Some(p) = pretty { parts.push(format!("pretty={p}")); }
+            format!("Print config: {}", parts.join(", "))
         }
         EngineCommand::Quit => "Quitting...".into(),
     }

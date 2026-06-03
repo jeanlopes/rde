@@ -8,11 +8,13 @@ rust-version.workspace = true
 
 [dependencies]
 rde-core = { workspace = true }
+rde-symbols = { workspace = true }
 windows = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
 async-trait = { workspace = true }
+capstone = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }

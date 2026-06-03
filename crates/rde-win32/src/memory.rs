@@ -3,7 +3,7 @@
 use rde_core::{DebugError, ProcessHandle};
 use tracing::instrument;
 use windows::Win32::Foundation::HANDLE;
-use windows::Win32::System::Diagnostics::Debug::ReadProcessMemory;
+use windows::Win32::System::Diagnostics::Debug::{FlushInstructionCache, ReadProcessMemory};
 use windows::Win32::System::Memory::{VirtualProtectEx, PAGE_EXECUTE_READWRITE, PAGE_PROTECTION_FLAGS};
 
 /// Read memory from the target process.
@@ -89,5 +89,11 @@ pub fn write_memory(handle: &ProcessHandle, address: u64, bytes: &[u8]) -> Resul
             message: format!("WriteProcessMemory failed at 0x{address:x}"),
         });
     }
+
+    // INVARIANT: Always call FlushInstructionCache after WriteProcessMemory on a code page.
+    // Without this, the CPU may execute the cached (non-patched) instruction on multi-core systems.
+    // GitHub issue: TODO(rde#step-over-contract)
+    let _ = unsafe { FlushInstructionCache(h, Some(address as *const std::ffi::c_void), bytes.len()) };
+
     Ok(())
 }

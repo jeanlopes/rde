@@ -4,7 +4,7 @@
 
 **Created**: 2026-06-01
 
-**Status**: Draft
+**Status**: Em Progresso — Implementação concluída; verificação final bloqueada por falha na resolução de símbolos DbgHelp (SC-007 não confirmado)
 
 **Input**: Derived from 90 `#[ignore]` test cases in `tests/big_test_plan.rs` that could not run because their underlying features were not yet implemented.
 

@@ -15,6 +15,10 @@ pub enum EngineCommand {
     },
     Continue,
     StepInto,
+    /// Advance one machine instruction without entering callees.
+    StepOver,
+    /// Run to the end of the current function and stop at the caller.
+    StepOut,
     SetBreakpoint {
         address: Option<u64>,
         symbol: Option<String>,
@@ -28,6 +32,7 @@ pub enum EngineCommand {
     ReadMemory {
         address: u64,
         size: usize,
+        expression: Option<String>,
     },
     WriteMemory {
         address: u64,
@@ -63,6 +68,12 @@ pub enum EngineCommand {
         auto_show: Option<bool>,
         count: Option<usize>,
     },
+    /// Configure pretty-printer output limits.
+    SetPrintConfig {
+        limit: Option<usize>,
+        depth: Option<usize>,
+        pretty: Option<bool>,
+    },
     Quit,
 }
 
@@ -91,6 +102,9 @@ pub enum BreakpointKind {
     /// A user-defined software breakpoint (INT3). The full protocol applies:
     /// restore original byte, decrement RIP, set Trap Flag.
     UserDefined(BreakpointId),
+    /// An internal temporary breakpoint planted by step-over or step-out logic.
+    /// MUST NOT be surfaced as a hit event to the user.
+    Temporary,
 }
 
 /// Events sent from the debug engine to the REPL/UI.
@@ -98,6 +112,8 @@ pub enum BreakpointKind {
 pub enum EngineEvent {
     ProcessLaunched {
         pid: u32,
+        /// Base address of the main executable (from CREATE_PROCESS_DEBUG_EVENT).
+        base_address: u64,
     },
     ProcessAttached {
         pid: u32,
@@ -163,6 +179,12 @@ pub enum EngineEvent {
     TaskList {
         tasks: Vec<crate::task::AsyncTask>,
     },
+    /// Emitted after a StepOver or StepOut operation completes.
+    StepCompleted {
+        thread_id: ThreadId,
+        /// Address the IP is now at (after the step).
+        address: u64,
+    },
     /// Cargo launch result.
     CargoLaunchResult {
         result: Result<u32, String>,
@@ -172,4 +194,7 @@ pub enum EngineEvent {
         address: u64,
         bytes: Vec<u8>,
     },
+    /// Emitted by the engine after every handle_command completes.
+    /// The REPL waits for this before printing the next prompt.
+    CommandComplete,
 }

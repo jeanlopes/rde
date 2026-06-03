@@ -100,10 +100,11 @@ impl RdeSession {
         lines
     }
 
-    /// Read lines until a specific pattern is found or timeout.
+    /// Read lines until a specific pattern is found, then drain until the prompt or timeout.
     pub fn read_until(&self, pattern: &str, timeout: Duration) -> Vec<String> {
         let mut lines = Vec::new();
         let deadline = std::time::Instant::now() + timeout;
+        let mut found = false;
         loop {
             let remaining = deadline.saturating_duration_since(std::time::Instant::now());
             if remaining.is_zero() {
@@ -111,9 +112,13 @@ impl RdeSession {
             }
             match self.reader.recv_timeout(remaining) {
                 Ok(line) => {
-                    let found = line.contains(pattern);
-                    lines.push(line);
-                    if found {
+                    if !found && line.contains(pattern) {
+                        found = true;
+                    }
+                    lines.push(line.clone());
+                    // Once the pattern is found, keep draining until the prompt appears
+                    // so that subsequent send_and_wait calls don't capture a stale prompt.
+                    if found && line.trim() == "rde>" {
                         break;
                     }
                 }
@@ -133,6 +138,11 @@ impl RdeSession {
     pub fn send_and_wait(&mut self, command: &str, timeout: Duration) -> Vec<String> {
         self.send(command);
         self.read_until_prompt(timeout)
+    }
+
+    /// Check if the child process is still running.
+    pub fn is_alive(&mut self) -> bool {
+        self.child.try_wait().map(|s| s.is_none()).unwrap_or(false)
     }
 
     /// Kill the session.

@@ -1,0 +1,81 @@
+[2m2026-06-02T21:24:17.945427Z[0m [32m INFO[0m [2mrde_cli[0m[2m:[0m RDE CLI starting
+[2m2026-06-02T21:24:17.945517Z[0m [32m INFO[0m [1mrun[0m[2m:[0m [2mrde_core::engine[0m[2m:[0m DebugEngine started
+[2m2026-06-02T21:24:17.945655Z[0m [32m INFO[0m [2mrde_repl[0m[2m:[0m REPL started
+[2m2026-06-02T21:24:17.951414Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Debug loop started on thread ThreadId(11)
+[2m2026-06-02T21:24:17.951523Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(3) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:17.951532Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Process created: PID 28712
+[2m2026-06-02T21:24:17.951541Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Waiting for engine command to continue...
+[2m2026-06-02T21:24:17.951571Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mProcessLaunched { pid: 28712, base_address: 140695476371456 }[1m}[0m[2m:[0m [2mrde_core::engine[0m[2m:[0m Process launched: PID 28712 base=0x7ff637e40000
+[2m2026-06-02T21:24:17.955506Z[0m [32m INFO[0m [2mrde_win32[0m[2m:[0m DbgHelp symbols initialized for PID 28712
+[2m2026-06-02T21:24:17.955567Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mProcessLaunched { pid: 28712, base_address: 140695476371456 }[1m}[0m[2m:[0m [2mrde_core::engine[0m[2m:[0m Engine sending Continue to debug loop for process creation
+Processo iniciado: PID 28712
+[2m2026-06-02T21:24:17.955589Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Calling ContinueDebugEvent with status=0x00010001
+[2m2026-06-02T21:24:17.955690Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(6) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:17.955720Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m DLL loaded: C:\Windows\System32\ntdll.dll base 0x7ff9f1640000
+[2m2026-06-02T21:24:17.955741Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mModuleLoaded { name: "C:\\Windows\\System32\\ntdll.dll", base: 140711473446912 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ModuleLoaded [3mmodule_name[0m[2m=[0mC:\Windows\System32\ntdll.dll [3mbase[0m[2m=[0m140711473446912
+[Módulo carregado] C:\Windows\System32\ntdll.dll em 0x7ff9f1640000
+[2m2026-06-02T21:24:17.956455Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(6) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:17.956468Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m DLL loaded: C:\Windows\System32\kernel32.dll base 0x7ff9f02c0000
+[2m2026-06-02T21:24:17.956491Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mModuleLoaded { name: "C:\\Windows\\System32\\kernel32.dll", base: 140711452999680 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ModuleLoaded [3mmodule_name[0m[2m=[0mC:\Windows\System32\kernel32.dll [3mbase[0m[2m=[0m140711452999680
+[Módulo carregado] C:\Windows\System32\kernel32.dll em 0x7ff9f02c0000
+[2m2026-06-02T21:24:17.956602Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(6) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:17.956616Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m DLL loaded: C:\Windows\System32\KernelBase.dll base 0x7ff9ee1f0000
+[2m2026-06-02T21:24:17.956645Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mModuleLoaded { name: "C:\\Windows\\System32\\KernelBase.dll", base: 140711418593280 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ModuleLoaded [3mmodule_name[0m[2m=[0mC:\Windows\System32\KernelBase.dll [3mbase[0m[2m=[0m140711418593280
+[Módulo carregado] C:\Windows\System32\KernelBase.dll em 0x7ff9ee1f0000
+[2m2026-06-02T21:24:17.957878Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(2) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m25044
+[2m2026-06-02T21:24:17.957897Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Thread created: TID 25044 hThread HANDLE(440)
+[2m2026-06-02T21:24:17.957921Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mThreadCreated { id: 25044, handle: 440 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ThreadCreated [3mthread_id[0m[2m=[0m25044 [3mhandle[0m[2m=[0m440
+[Thread criada] TID 25044
+[2m2026-06-02T21:24:17.957980Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(6) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:17.958045Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m DLL loaded: C:\Windows\System32\ucrtbase.dll base 0x7ff9ef270000
+[2m2026-06-02T21:24:17.958072Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mModuleLoaded { name: "C:\\Windows\\System32\\ucrtbase.dll", base: 140711435894784 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ModuleLoaded [3mmodule_name[0m[2m=[0mC:\Windows\System32\ucrtbase.dll [3mbase[0m[2m=[0m140711435894784
+[Módulo carregado] C:\Windows\System32\ucrtbase.dll em 0x7ff9ef270000
+[2m2026-06-02T21:24:17.958197Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(2) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m14284
+[2m2026-06-02T21:24:17.958222Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Thread created: TID 14284 hThread HANDLE(448)
+[2m2026-06-02T21:24:17.958247Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mThreadCreated { id: 14284, handle: 448 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ThreadCreated [3mthread_id[0m[2m=[0m14284 [3mhandle[0m[2m=[0m448
+[Thread criada] TID 14284
+[2m2026-06-02T21:24:17.958386Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(6) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m25044
+[2m2026-06-02T21:24:17.958407Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m DLL loaded: C:\Users\jeano\AppData\Roaming\Code\User\globalStorage\moonshot-ai.kimi-code\bin\kimi\_internal\VCRUNTIME140.dll base 0x7ff9bae00000
+[2m2026-06-02T21:24:17.958423Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mModuleLoaded { name: "C:\\Users\\jeano\\AppData\\Roaming\\Code\\User\\globalStorage\\moonshot-ai.kimi-code\\bin\\kimi\\_internal\\VCRUNTIME140.dll", base: 140710558826496 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ModuleLoaded [3mmodule_name[0m[2m=[0mC:\Users\jeano\AppData\Roaming\Code\User\globalStorage\moonshot-ai.kimi-code\bin\kimi\_internal\VCRUNTIME140.dll [3mbase[0m[2m=[0m140710558826496
+[Módulo carregado] C:\Users\jeano\AppData\Roaming\Code\User\globalStorage\moonshot-ai.kimi-code\bin\kimi\_internal\VCRUNTIME140.dll em 0x7ff9bae00000
+[2m2026-06-02T21:24:17.958521Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(2) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m28436
+[2m2026-06-02T21:24:17.958544Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Thread created: TID 28436 hThread HANDLE(456)
+[2m2026-06-02T21:24:17.958570Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mThreadCreated { id: 28436, handle: 456 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ThreadCreated [3mthread_id[0m[2m=[0m28436 [3mhandle[0m[2m=[0m456
+[Thread criada] TID 28436
+[2m2026-06-02T21:24:17.958620Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(1) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:17.958648Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Exception: code 0x80000003 at 0x7FF9F175F58D
+[2m2026-06-02T21:24:17.958663Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Waiting for engine command to continue...
+[2m2026-06-02T21:24:17.958674Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mBreakpointHit { kind: Unknown, address: 140711474623885, thread_id: 17604 }[1m}[0m[2m:[0m [2mrde::engine::transition[0m[2m:[0m SystemInitial breakpoint hit — waiting for user continue [3maddress[0m[2m=[0m"0x7ff9f175f58d" [3mthread_id[0m[2m=[0m17604
+[System Breakpoint] Hit em 0x7ff9f175f58d — Thread 17604
+rde>
+[2m2026-06-02T21:24:17.958684Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mBreakpointHit { kind: Unknown, address: 140711474623885, thread_id: 17604 }[1m}[0m[2m:[0m [2mrde::engine::transition[0m[2m:[0m state transition [3mfrom[0m[2m=[0mEngineStateSnapshot { has_session: true, breakpoint_count: 0, stepping_over: None } [3mto[0m[2m=[0mEngineStateSnapshot { has_session: true, breakpoint_count: 0, stepping_over: None }
+Erro: Símbolo 'height' não encontrado
+rde>
+[2m2026-06-02T21:24:18.975812Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Calling ContinueDebugEvent with status=0x00010001
+[2m2026-06-02T21:24:19.477351Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(6) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:19.477433Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m DLL loaded: C:\Windows\System32\kernel.appcore.dll base 0x7ff9ece00000
+[2m2026-06-02T21:24:19.477504Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mModuleLoaded { name: "C:\\Windows\\System32\\kernel.appcore.dll", base: 140711397687296 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ModuleLoaded [3mmodule_name[0m[2m=[0mC:\Windows\System32\kernel.appcore.dll [3mbase[0m[2m=[0m140711397687296
+[Módulo carregado] C:\Windows\System32\kernel.appcore.dll em 0x7ff9ece00000
+[2m2026-06-02T21:24:19.477666Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(6) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:19.477699Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m DLL loaded: C:\Windows\System32\msvcrt.dll base 0x7ff9f0590000
+[2m2026-06-02T21:24:19.477731Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mModuleLoaded { name: "C:\\Windows\\System32\\msvcrt.dll", base: 140711455948800 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ModuleLoaded [3mmodule_name[0m[2m=[0mC:\Windows\System32\msvcrt.dll [3mbase[0m[2m=[0m140711455948800
+[Módulo carregado] C:\Windows\System32\msvcrt.dll em 0x7ff9f0590000
+[2m2026-06-02T21:24:19.478342Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(4) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m14284
+[2m2026-06-02T21:24:19.478364Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Thread exited: TID 14284 code 0
+[2m2026-06-02T21:24:19.478380Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(4) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m28436
+[2m2026-06-02T21:24:19.478384Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Thread exited: TID 28436 code 0
+[2m2026-06-02T21:24:19.478390Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(4) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m25044
+[2m2026-06-02T21:24:19.478389Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mThreadExited { id: 14284, code: 0 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ThreadExited [3mthread_id[0m[2m=[0m14284 [3mexit_code[0m[2m=[0m0
+[2m2026-06-02T21:24:19.478426Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mThreadExited { id: 28436, code: 0 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ThreadExited [3mthread_id[0m[2m=[0m28436 [3mexit_code[0m[2m=[0m0
+[Thread encerrada] TID 14284 (código: 0)
+[Thread encerrada] TID 28436 (código: 0)
+[2m2026-06-02T21:24:19.478395Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Thread exited: TID 25044 code 0
+[2m2026-06-02T21:24:19.478656Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mThreadExited { id: 25044, code: 0 }[1m}[0m[2m:[0m [2mrde::engine::event[0m[2m:[0m ThreadExited [3mthread_id[0m[2m=[0m25044 [3mexit_code[0m[2m=[0m0
+[Thread encerrada] TID 25044 (código: 0)
+[2m2026-06-02T21:24:19.478767Z[0m [32m INFO[0m [2mrde::debug_loop::state[0m[2m:[0m WaitForDebugEventEx returned Ok [3mcode[0m[2m=[0mDEBUG_EVENT_CODE(5) [3mpid[0m[2m=[0m28712 [3mtid[0m[2m=[0m17604
+[2m2026-06-02T21:24:19.478774Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Process exited: PID 28712 code 0
+[2m2026-06-02T21:24:19.478782Z[0m [32m INFO[0m [2mrde_win32::debug_loop[0m[2m:[0m Debug loop exiting
+[2m2026-06-02T21:24:19.478788Z[0m [32m INFO[0m [1mrun[0m[2m:[0m[1mhandle_event[0m[1m{[0m[3mevt[0m[2m=[0mProcessExited { code: 0 }[1m}[0m[2m:[0m [2mrde_core::engine[0m[2m:[0m Process exited with code 0
+[Processo encerrado] código: 0
+rde>
+Erro: No active debug session

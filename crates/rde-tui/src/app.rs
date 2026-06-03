@@ -269,7 +269,7 @@ fn parse_repl_input(input: &str) -> EngineCommand {
         "x" | "read" | "read_mem" => {
             let addr = parts.get(1).and_then(|a| parse_address(a)).unwrap_or(0);
             let size = parts.get(2).and_then(|a| a.parse().ok()).unwrap_or(64);
-            EngineCommand::ReadMemory { address: addr, size }
+            EngineCommand::ReadMemory { address: addr, size, expression: None }
         }
         "disas" | "disassemble" => EngineCommand::Disassemble {
             address: parts.get(1).and_then(|a| parse_address(a)),

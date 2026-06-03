@@ -10,7 +10,7 @@ pub use dbghelp::DbgHelpSymbolEngine;
 /// Trait for symbol resolution backends.
 pub trait SymbolEngine: Send + Sync {
     /// Initialize symbol handling for the given process.
-    fn initialize(&mut self, process_id: u32) -> Result<(), DebugError>;
+    fn initialize(&mut self, process_id: u32, exe_path: Option<&std::path::Path>, base_address: Option<u64>, process_handle: Option<isize>) -> Result<(), DebugError>;
 
     /// Resolve a symbol by address.
     fn resolve(&self, address: u64) -> Result<SymbolInfo, DebugError>;
@@ -35,7 +35,7 @@ pub trait SymbolEngine: Send + Sync {
 pub struct StubSymbolEngine;
 
 impl SymbolEngine for StubSymbolEngine {
-    fn initialize(&mut self, _process_id: u32) -> Result<(), DebugError> {
+    fn initialize(&mut self, _process_id: u32, _exe_path: Option<&std::path::Path>, _base_address: Option<u64>, _process_handle: Option<isize>) -> Result<(), DebugError> {
         Ok(())
     }
 

@@ -17,6 +17,7 @@ rde-orchestrator = { workspace = true }
 tokio = { workspace = true }
 tracing = { workspace = true }
 thiserror = { workspace = true }
+is-terminal = { workspace = true }
 
 [dev-dependencies]
 mockall = { workspace = true }
