@@ -29,7 +29,10 @@ pub enum BreakpointState {
 
 impl BreakpointManager {
     pub fn new() -> Self {
-        Self::default()
+        Self {
+            breakpoints: HashMap::new(),
+            next_id: 1,
+        }
     }
 
     /// Set a breakpoint at the given address.

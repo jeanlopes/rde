@@ -43,10 +43,13 @@ enum CargoCommands {
         /// Package to build (for workspaces)
         #[arg(long)]
         package: Option<String>,
-        /// Target to build
+        /// Binary target to build and debug
         #[arg(long)]
-        target: Option<String>,
-        /// Build profile
+        bin: Option<String>,
+        /// Build in release mode (equivalent to --profile release)
+        #[arg(long)]
+        release: bool,
+        /// Build profile (overridden by --release)
         #[arg(long, default_value = "dev")]
         profile: String,
         /// Features to enable
@@ -66,13 +69,13 @@ async fn main() {
             .open("rde-debug.log")
             .expect("failed to open log file");
         let subscriber = FmtSubscriber::builder()
-            .with_max_level(Level::INFO)
+            .with_max_level(Level::WARN)
             .with_writer(move || log_file.try_clone().unwrap())
             .finish();
         tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     } else {
         let subscriber = FmtSubscriber::builder()
-            .with_max_level(Level::INFO)
+            .with_max_level(Level::WARN)
             .finish();
         tracing::subscriber::set_global_default(subscriber).expect("setting default subscriber failed");
     }
@@ -89,11 +92,14 @@ async fn main() {
     });
 
     match args.command {
-        Some(Commands::Cargo { command: CargoCommands::Debug { package, target, profile, features } }) => {
+        Some(Commands::Cargo { command: CargoCommands::Debug { package, bin, release, profile, features } }) => {
+            let effective_profile = if release { "release".to_string() } else { profile };
             let manifest_path = std::env::current_dir()
                 .unwrap_or_default()
                 .join("Cargo.toml");
-            match rde_orchestrator::cargo_resolve_and_build(&manifest_path, package, target, profile, features).await {
+            // Use `bin` as the target name if provided, otherwise `None`
+            let target = bin;
+            match rde_orchestrator::cargo_resolve_and_build(&manifest_path, package, target, effective_profile, features).await {
                 Ok(artifact_path) => {
                     let _ = command_tx.send(rde_core::EngineCommand::Launch {
                         path: artifact_path,
@@ -119,9 +125,8 @@ async fn main() {
                 if cargo_example.exists() {
                     std::fs::canonicalize(&cargo_example).unwrap_or(cargo_example)
                 } else {
-                    eprintln!("Erro: executável não encontrado: {}", path.display());
-                    eprintln!("Dica: compile com 'cargo build --example <nome>' e use o caminho completo.");
-                    std::process::exit(1);
+                    // Let the engine report the error instead of exiting.
+                    path
                 }
             };
             let _ = command_tx.send(rde_core::EngineCommand::Launch {

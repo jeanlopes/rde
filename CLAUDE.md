@@ -7,9 +7,9 @@ project.
 
 ## Active Plan
 
-- **Feature**: 006-big-test-plan
-- **Spec**: [specs/006-big-test-plan/spec.md](specs/006-big-test-plan/spec.md)
-- **Plan**: [specs/006-big-test-plan/plan.md](specs/006-big-test-plan/plan.md)
+- **Feature**: 007-features-left-behind
+- **Spec**: [specs/007-features-left-behind/spec.md](specs/007-features-left-behind/spec.md)
+- **Plan**: [specs/007-features-left-behind/plan.md](specs/007-features-left-behind/plan.md)
 
 ## Constitution
 

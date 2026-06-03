@@ -29,6 +29,8 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
         }
         "continue" | "c" => Ok(EngineCommand::Continue),
         "step" | "s" => Ok(EngineCommand::StepInto),
+        "next" | "n" => Ok(EngineCommand::StepOver),
+        "finish" | "f" => Ok(EngineCommand::StepOut),
         "break" => {
             if parts.len() < 2 {
                 return Err("usage: break <address|symbol>".into());
@@ -58,9 +60,15 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
             if parts.len() < 2 {
                 return Err("usage: x <address> [size]".into());
             }
-            let address = parse_hex(parts[1])?;
-            let size = parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(16);
-            Ok(EngineCommand::ReadMemory { address, size })
+            let arg = parts[1];
+            if arg.starts_with('$') {
+                let size = parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(16);
+                Ok(EngineCommand::ReadMemory { address: 0, size, expression: Some(arg.to_string()) })
+            } else {
+                let address = parse_hex(arg)?;
+                let size = parts.get(2).and_then(|s| s.parse().ok()).unwrap_or(16);
+                Ok(EngineCommand::ReadMemory { address, size, expression: None })
+            }
         }
         "setmem" => {
             if parts.len() < 3 {
@@ -173,6 +181,22 @@ pub fn parse(input: &str) -> Result<EngineCommand, String> {
                         return Err("count must be between 1 and 100".into());
                     }
                     Ok(EngineCommand::SetDisassemblyConfig { auto_show: None, count: Some(c) })
+                }
+                "print-limit" => {
+                    let l = parts[2].parse::<usize>().map_err(|_| "invalid limit")?;
+                    Ok(EngineCommand::SetPrintConfig { limit: Some(l), depth: None, pretty: None })
+                }
+                "print-depth" => {
+                    let d = parts[2].parse::<usize>().map_err(|_| "invalid depth")?;
+                    Ok(EngineCommand::SetPrintConfig { limit: None, depth: Some(d), pretty: None })
+                }
+                "pretty-print" => {
+                    let p = match parts[2] {
+                        "on" => true,
+                        "off" => false,
+                        _ => return Err("usage: set pretty-print on|off".into()),
+                    };
+                    Ok(EngineCommand::SetPrintConfig { limit: None, depth: None, pretty: Some(p) })
                 }
                 _ => Err(format!("unknown set option: {}", parts[1])),
             }

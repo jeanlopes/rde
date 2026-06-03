@@ -17,6 +17,23 @@ pub use events::{BreakpointKind, DebugLoopCommand, EngineCommand, EngineEvent};
 pub use disasm::{DisassemblyLine, DisassemblyView, DisassemblyConfig};
 pub use breakpoint::{Breakpoint, BreakpointManager, BreakpointState};
 
+/// Runtime configuration for the pretty-printer.
+#[derive(Debug, Clone)]
+pub struct PrintConfig {
+    /// Max collection elements to show.
+    pub limit: usize,
+    /// Max nesting depth to expand.
+    pub depth: usize,
+    /// Enable structured pretty output.
+    pub pretty: bool,
+}
+
+impl Default for PrintConfig {
+    fn default() -> Self {
+        Self { limit: 100, depth: 5, pretty: true }
+    }
+}
+
 /// Unique identifier for a debug session.
 pub type SessionId = uuid::Uuid;
 
@@ -185,9 +202,26 @@ pub trait DebugBackend: Send + Sync {
     async fn continue_execution(&self, handle: &ProcessHandle) -> Result<(), DebugError>;
     async fn single_step(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<(), DebugError>;
     async fn read_memory(&self, handle: &ProcessHandle, address: u64, size: usize) -> Result<Vec<u8>, DebugError>;
+    /// Write memory to the target process code page; MUST flush instruction cache after write.
     async fn write_memory(&self, handle: &ProcessHandle, address: u64, bytes: &[u8]) -> Result<(), DebugError>;
     async fn get_registers(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<RegisterContext, DebugError>;
     async fn set_registers(&self, handle: &ProcessHandle, thread_id: ThreadId, ctx: &RegisterContext) -> Result<(), DebugError>;
     async fn suspend_thread(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<(), DebugError>;
     async fn resume_thread(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<(), DebugError>;
+    /// Decode the instruction at `rip` and return `rip + instruction_length` (next instruction address).
+    /// Used by the step-over implementation to locate the temp BP insertion point.
+    async fn next_instruction_address(&self, handle: &ProcessHandle, rip: u64) -> Result<u64, DebugError>;
+    /// Read the return address for step-out using the current thread's call stack.
+    /// Used by the step-out implementation to locate the caller's return address.
+    async fn read_return_address(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<u64, DebugError>;
+    /// Initialize symbol engine for the given process (called after launch/attach).
+    /// `exe_path` is the path of the launched executable (for targeted symbol loading).
+    async fn init_symbols(&self, process_id: u32, exe_path: Option<&std::path::Path>, base_address: Option<u64>, process_handle: Option<RawHandle>) -> Result<(), DebugError>;
+    /// Resolve a symbol name to one or more addresses using DbgHelp.
+    async fn resolve_symbol(&self, name: &str) -> Result<Vec<u64>, DebugError>;
+    /// Walk the call stack for the given thread.
+    async fn walk_stack(&self, handle: &ProcessHandle, thread_id: ThreadId) -> Result<Vec<StackFrame>, DebugError>;
+    /// Walk the call stack using a pre-fetched register context (RIP/RBP).
+    /// This avoids re-opening the thread when it may already have been resumed.
+    async fn walk_stack_with_context(&self, rip: u64, rbp: u64) -> Result<Vec<StackFrame>, DebugError>;
 }

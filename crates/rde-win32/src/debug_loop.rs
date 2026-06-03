@@ -146,8 +146,16 @@ fn dispatch_event(
     match event.dwDebugEventCode {
         CREATE_PROCESS_DEBUG_EVENT => {
             info!("Process created: PID {}", event.dwProcessId);
+            let base_address = unsafe { event.u.CreateProcessInfo.lpBaseOfImage } as u64;
+            let h_thread = unsafe { event.u.CreateProcessInfo.hThread };
             let _ = tx.send(EngineEvent::ProcessLaunched {
                 pid: event.dwProcessId,
+                base_address,
+            });
+            // Also send ThreadCreated for the main thread
+            let _ = tx.send(EngineEvent::ThreadCreated {
+                id: event.dwThreadId,
+                handle: h_thread.0 as usize,
             });
             true
         }
