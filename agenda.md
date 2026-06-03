@@ -13,7 +13,7 @@
 |------|--------|
 | `#[ignore]` removidos do test plan | ✅ 0 tags restantes em `tests/big_test_plan.rs` |
 | Build do workspace | ✅ `cargo build --workspace` passa limpo |
-| Suíte de testes completa (SC-007) | 🔄 **EM ANDAMENTO** — última execução: ~249 passados / ~42 falhando |
+| Suíte de testes completa (SC-007) | 🔄 **EM ANDAMENTO** — última execução: **~287 passados / ~5 falhando** |
 
 ---
 
@@ -53,52 +53,67 @@
 
 ---
 
-## Problemas Abertos (Bloqueadores Atuais)
+### 5. Backtrace Symbol Resolution + `walk_stack_from_context`
 
-### Categoria: Symbol Resolution
-- `tc_029`: `balance_factor` não existe como símbolo no debuggee
-- `tc_053`: `clear` não existe como símbolo
-- `tc_054`: `is_empty` — símbolo existe mas `break is_empty` não encontra (possível conflito de nome ou inlining)
+**Problema**: `tc_157`, `tc_160`, `tc_220` falhavam porque o backtrace mostrava "??" para todos os frames. O `resolve(address)` (usado pelo `walk_stack`) só tentava `SymFromAddrW` (que falhava silenciosamente porque DbgHelp não tinha símbolos carregados), e o fallback do PDB buscava apenas endereço **exato** — mas PCs de stack walk apontam para o meio de funções.
+
+**Solução**:
+- `crates/rde-symbols/src/dbghelp.rs`: fallback do `resolve()` agora faz busca por **endereço mais próximo menor ou igual** (`addr <= address`), com heurística de distância máxima (64KB)
+- Corrigida conversão UTF-16→UTF-8 no `resolve()`: `SymFromAddrW` escreve UTF-16LE no campo `name` do `SYMBOL_INFO` mesmo passando a struct ANSI; detectado pelo padrão de bytes nulos e convertido com `String::from_utf16_lossy`
+- Corrigido truncamento: `name_len` é contagem de WCHARs, então lemos `name_len * 2` bytes
+
+### 6. `walk_stack` com Contexto Guardado (Engine)
+
+**Problema**: `walk_stack` chamava `OpenThread` + `GetThreadContext` internamente, que falhava com `ERROR_INVALID_HANDLE` em ~50% das execuções (thread já em estado de transição após o engine modificar contexto para single-step). Além disso, quando o processo single-stepped automaticamente após um breakpoint hit, o `get_context` no momento do `bt` retornava RIP incorreto (em código do sistema).
+
+**Solução**:
+- `crates/rde-core/src/engine.rs`: adicionado `Session::last_context: HashMap<u32, RegisterContext>`. Quando o engine processa um `BreakpointHit`, guarda o `RegisterContext` modificado (RIP = endereço do BP, RFLAGS |= TF) antes de continuar
+- `crates/rde-core/src/lib.rs`: novo método `walk_stack_with_context(rip, rbp)` no trait `DebugBackend`
+- `crates/rde-win32/src/lib.rs`: `walk_stack` agora usa `thread::get_context` (caminho conhecido por funcionar) e passa RIP/RBP para `walk_stack_from_context`; implementado `walk_stack_with_context`
+- `crates/rde-core/src/engine.rs`: handler de `Backtrace` usa `walk_stack_with_context` com o contexto guardado se disponível, evitando re-obter contexto de um thread que já foi resumido
+
+### 7. `selected_thread` no System Initial Breakpoint
+
+**Problema**: `tc_220` (`bt` sem nenhum comando prévio) falhava com "No thread selected" porque o engine não setava `selected_thread` quando o system initial breakpoint era atingido.
+
+**Solução**: `crates/rde-core/src/engine.rs`: adicionado `session.selected_thread = Some(thread_id)` no handler de `BreakpointKind::SystemInitial`.
+
+### 8. `resolve_by_name` — Substring Muito Permissivo
+
+**Problema**: `tc_199` falhava porque `break insert` criava **dois** breakpoints (endereços `0x...1570` e `0x...1af0`). O fallback do PDB fazia busca substring genérica (`sym_name.contains("insert")`), que encontrava múltiplos símbolos (`insert`, `insert_left`, instâncias monomorfizadas, etc.).
+
+**Solução**: `crates/rde-symbols/src/dbghelp.rs`: fallback de substring agora prefere matches que terminam com `::{name}` ou são exatamente `{name}`; só cai em substring genérico se não houver nenhum suffix/exact match.
+
+---
+
+## Problemas Abertos (Bloqueadores Atuais)
 
 ### Categoria: Attach / Launch Edge Cases
 - `tc_008`: attach a processo em execução — attach não retorna prompt corretamente
-- `tc_013`: launch de executável inexistente — saída de erro não contém string esperada
+- `golden_path_demo_success`: golden path — processo termina mas evento `ProcessExited` não aparece no output esperado
 
-### Categoria: Thread Commands
-- `tc_040`: `breakpoint_shows_thread_id` — breakpoint hit não mostra "Thread" no output esperado (possível interferência de logs de tracing)
+### Categoria: Step Sequencing
+- `tc_103`/`tc_104`: step-over / step-out sequence — `next`/`finish` travam (processo nunca retorna após step command). Possível interação entre Trap Flag residual e temp breakpoint de step-over causando loop de single-steps.
 
-### Categoria: Backtrace / Pretty-Print (não implementados)
-- `tc_155`, `tc_157`, `tc_160`, `tc_220`: `bt` retorna "Backtrace not yet implemented"
-- `tc_161`–`tc_163`, `tc_165`, `tc_285`: pretty-print não retorna output esperado
-
-### Categoria: Step Into Específicos
-- `tc_077`/`tc_078`/`tc_098`: ainda flakam em paralelo; individualmente passam após o fix do `biased` select. Possível solução: reduzir número de steps nos testes ou adicionar sync explícita.
-
-### Categoria: Edge Cases Diversos
-- `tc_035`/`tc_037`/`tc_199`: delete all breakpoints / dynamic remove/delete durante pause
-- `tc_114`: continue after delete
-- `tc_197`: empty command
-- `tc_256`: e2e
-- `tc_273`: print nonexistent
-- `golden_path_demo_success`: golden path
+### Categoria: Backtrace no System Breakpoint
+- `tc_220`: backtrace `main` thread — ainda trava ou retorna frames sem `main`. O RBP chain não é confiável no system breakpoint (ntdll sem frame pointers). Precisa de abordagem híbrida StackWalk64 + RBP chain, ou skip de frame walking para endereços de sistema.
 
 ---
 
 ## Próximos Passos
 
-1. **Rodar suíte completa** (`cargo test --test big_test_plan`) para obter contagem exata de pass/fail após as correções desta sessão
-2. **Fixar symbol tests restantes** — adicionar `#[inline(never)]` em funções faltantes ou ajustar asserts dos testes
-3. **Decidir sobre backtrace/pretty-print** — implementar ou marcar como `#[ignore]` com justificativa se estiverem fora do escopo
-4. **Limpar código temporário** — remover `eprintln!` de debug inseridos em `tests/big_test_plan.rs`
+1. **Investigar step sequencing** (`tc_103`/`tc_104`) — o engine parece entrar em loop de single-steps quando `next` é enviado após um user breakpoint. O Trap Flag pode não estar sendo limpo corretamente no contexto guardado, ou o temp BP de step-over está colidindo com o single-step automático do breakpoint hit.
+2. **Fixar tc_220** — implementar fallback seguro no `walk_stack` para system breakpoint (retornar apenas frame 0 ou usar StackWalk64 para código do sistema).
+3. **Fixar attach / golden_path** — verificar race conditions no `ProcessExited` detection e no attach flow.
+4. **Limpar código temporário** — remover `println!`/`eprintln!` de diagnóstico inseridos em `dbghelp.rs`, `engine.rs`, `thread.rs`.
 5. **Verificação final**: `cargo test --test big_test_plan` → 291 TCs, 0 falhados, 0 ignorados
 
 ---
 
 ## Arquivos Modificados Nesta Sessão
 
-- `tests/big_test_plan.rs` — fix de args de demo em tc_083–tc_091; `eprintln!` de diagnóstico (a remover)
-- `crates/rde-core/src/lib.rs` — assinatura de `read_return_address` mudou para `thread_id`
-- `crates/rde-core/src/engine.rs` — `tokio::select! { biased; }` priorizando debug events; `read_return_address` usa `tid`
-- `crates/rde-win32/src/lib.rs` — adaptação para novo `read_return_address`
-- `crates/rde-win32/src/step.rs` — `read_return_address` reescrito com `walk_stack`
-- `crates/rde-symbols/src/dbghelp.rs` — fix de `StackWalk64` callbacks + carregamento de `SymFunctionTableAccess64` / `SymGetModuleBase64`
+- `tests/big_test_plan.rs` — `eprintln!` de diagnóstico (a remover)
+- `crates/rde-core/src/lib.rs` — novo método `walk_stack_with_context` no trait `DebugBackend`
+- `crates/rde-core/src/engine.rs` — `last_context` no `Session`; `Backtrace` usa contexto guardado; `selected_thread` setado no system breakpoint
+- `crates/rde-win32/src/lib.rs` — `walk_stack` usa `thread::get_context` + `walk_stack_from_context`; `walk_stack_with_context` implementado
+- `crates/rde-symbols/src/dbghelp.rs` — `walk_stack_from_context` (RBP chain); `resolve` com busca aproximada e conversão UTF-16→UTF-8; `resolve_by_name` com suffix match preferencial
